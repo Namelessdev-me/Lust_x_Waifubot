@@ -4,46 +4,6 @@ from .block import block_dec, temp_block
 from Lust.utils import show, add, deduct, smex, sbank
 from Lust.config import OWNER_ID
 
-
-# ─── /exlic or /bal — view balance ───────────────────────────────────────────
-
-@app.on_message(filters.command(["exlic", "balance", "bal"]))
-@block_dec
-async def exlic_cmd(client, message):
-    user_id = message.from_user.id
-    if temp_block(user_id):
-        return
-
-    if message.reply_to_message:
-        target = message.reply_to_message.from_user
-        target_id = target.id
-        target_name = target.first_name
-    else:
-        target_id = user_id
-        target_name = message.from_user.first_name
-
-    balance = await show(target_id)
-    bank    = await sbank(target_id)
-    rank    = await smex(target_id)
-    total   = balance + bank
-
-    text = (
-        f"💰 ᴇxʟɪᴄ ʙᴀʟᴀɴᴄᴇ\n"
-        f"━━━━━━━━━━━━━━━\n"
-        f"👤 ᴜꜱᴇʀ   : {target_name}\n\n"
-        f"💵 ᴡᴀʟʟᴇᴛ : {balance:,} ᴇxʟɪᴄ\n"
-        f"🏦 ʙᴀɴᴋ   : {bank:,} ᴇxʟɪᴄ\n"
-        f"📊 ᴛᴏᴛᴀʟ  : {total:,} ᴇxʟɪᴄ\n"
-        f"🏅 ʀᴀɴᴋ   : #{rank if rank else '?'}\n"
-        f"━━━━━━━━━━━━━━━"
-    )
-
-    await message.reply_text(capsify(text))
-
-
-# ─── /addexlic — owner only: give exlic to user ──────────────────────────────
-# Usage: /addexlic <user_id> <amount>   OR   reply to user with /addexlic <amount>
-
 @app.on_message(filters.command("addexlic") & filters.user(OWNER_ID))
 async def add_exlic_cmd(client, message):
     args = message.text.split()[1:]
@@ -82,8 +42,6 @@ async def add_exlic_cmd(client, message):
     )
 
 
-# ─── /subexlic — owner only: remove exlic from ONE user ──────────────────────
-# Usage: /subexlic <user_id> <amount>   OR   reply to user with /subexlic <amount>
 
 @app.on_message(filters.command("subexlic") & filters.user(OWNER_ID))
 async def sub_exlic_cmd(client, message):
@@ -129,9 +87,6 @@ async def sub_exlic_cmd(client, message):
         )
     )
 
-
-# ─── /suballexlic — owner only: deduct from ALL users ────────────────────────
-# Usage: /suballexlic <amount>
 
 @app.on_message(filters.command("suballexlic") & filters.user(OWNER_ID))
 async def sub_all_exlic_cmd(client, message):
