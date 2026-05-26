@@ -193,7 +193,7 @@ async def guess(_, message):
             upsert=True
         )
 
-        keyboard = [[InlineKeyboardButton(capsify("CHECK HAREM"), switch_inline_query_current_chat=f"collection.{user_id}")]]
+        keyboard = [[InlineKeyboardButton(capsify("CHECK MYSLAVES"), switch_inline_query_current_chat=f"collection.{user_id}")]]
 
         success_message = capsify(
             f"🎊 CONGRATULATIONS {message.from_user.first_name}!\n\n"

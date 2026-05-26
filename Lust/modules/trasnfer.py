@@ -26,10 +26,10 @@ async def transfer(_, message):
         await message.reply_text(capsify(f'Receiver with ID {receiver_id} not found.'))
         return
 
-    receiver_waifus = receiver.get('characters', [])
-    receiver_waifus.extend(sender.get('characters', []))
+    receiver_slaves = receiver.get('characters', [])
+    receiver_slaves.extend(sender.get('characters', []))
 
-    await user_collection.update_one({'id': receiver_id}, {'$set': {'characters': receiver_waifus}})
+    await user_collection.update_one({'id': receiver_id}, {'$set': {'characters': receiver_slaves}})
     await user_collection.update_one({'id': sender_id}, {'$set': {'characters': []}})
 
-    await message.reply_text(capsify('All waifus transferred successfully!'))
+    await message.reply_text(capsify('All slaves transferred successfully!'))

@@ -28,7 +28,7 @@ UNLOCK = ChatPermissions(
 
 # Add to group button
 button_row = InlineKeyboardMarkup(
-    [[InlineKeyboardButton("➕ Add Me To Your Group", url=f"https://t.me/Waifu_Grasp_Robot?startgroup=new")]]
+    [[InlineKeyboardButton("➕ Add Me To Your Group", url=f"https://t.me/Slave_Grasp_Robot?startgroup=new")]]
 )
 
 async def lock_chat(chat_id: int):

@@ -69,7 +69,7 @@ async def xtop(update, context):
         user_link = f"<a href='tg://user?id={user_id}'>{escape(first_name)}</a>"
         top_users_message += f"{i}. {user_link} - ({user.get('xp', 0):,.0f} xp)\n"
     
-    top_users_message += "────────────────────\nTop 10 Users via @Guess_Yourr_Waifu_bot"
+    top_users_message += "────────────────────\nTop 10 Users via @Guess_Yourr_Slave_bot"
     photo_path = 'https://telegra.ph/file/0dd6484b96c63f06379ef.jpg'
     await update.message.reply_photo(photo=photo_path, caption=top_users_message, parse_mode='HTML')
 

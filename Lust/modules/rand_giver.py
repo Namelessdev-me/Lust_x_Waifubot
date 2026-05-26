@@ -19,14 +19,14 @@ async def giverandom(client: Client, message: Message):
     try:
         args = message.text.split()[1:]
         if len(args) != 2:
-            await message.reply_text('Please provide a valid user ID and the number of waifus to give.')
+            await message.reply_text('Please provide a valid user ID and the number of slaves to give.')
             return
 
         try:
             receiver_id = int(args[0])
-            waifu_count = int(args[1])
+            slave_count = int(args[1])
         except ValueError:
-            await message.reply_text('Invalid user ID or waifu count provided.')
+            await message.reply_text('Invalid user ID or slave count provided.')
             return
 
         receiver = await user_collection.find_one({'id': receiver_id})
@@ -34,17 +34,17 @@ async def giverandom(client: Client, message: Message):
             await message.reply_text(f'Receiver with ID {receiver_id} not found.')
             return
 
-        all_waifus = await collection.find({}).to_list(None)
-        valid_waifus = [waifu for waifu in all_waifus if 'rarity' in waifu]
-        waifu_weights = [rarity_percentages.get(waifu['rarity'], 0) for waifu in valid_waifus]
-        random_waifus = choices(valid_waifus, weights=waifu_weights, k=waifu_count)
+        all_slaves = await collection.find({}).to_list(None)
+        valid_slaves = [slave for slave in all_slaves if 'rarity' in slave]
+        slave_weights = [rarity_percentages.get(slave['rarity'], 0) for slave in valid_slaves]
+        random_slaves = choices(valid_slaves, weights=slave_weights, k=slave_count)
 
-        receiver_waifus = receiver.get('characters', [])
-        receiver_waifus.extend(random_waifus)
+        receiver_slaves = receiver.get('characters', [])
+        receiver_slaves.extend(random_slaves)
 
-        await user_collection.update_one({'id': receiver_id}, {'$set': {'characters': receiver_waifus}})
+        await user_collection.update_one({'id': receiver_id}, {'$set': {'characters': receiver_slaves}})
 
-        await message.reply_text(f'Successfully gave {waifu_count} random waifus to user {receiver_id}!')
+        await message.reply_text(f'Successfully gave {slave_count} random slaves to user {receiver_id}!')
 
     except Exception as e:
         await message.reply_text(f'An error occurred: {e}')

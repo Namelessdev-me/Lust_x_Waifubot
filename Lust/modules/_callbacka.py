@@ -3,7 +3,7 @@ from telegram.ext import CallbackContext, CallbackQueryHandler, CommandHandler
 from Lust import application
 #from .cmode import cmode_callback
 from Lust.utils.button import button_click as bc
-#from .harem import harem_callback as hc
+#from .myslaves import myslaves_callback as hc
 from .info import check
 #from .sgift import confirm_gift, cancel_gift
 from .trade import confirm_trade, cancel_trade
