@@ -52,9 +52,10 @@ async def spawn_character(chat_id):
             2: "☘️ Medium",
             3: "🔴 Rare",
             4: "🟡 Legendary",
-            5: "🔮 Limited Edition",
-            6: "🏵️ Seasonal",
-            7: "💮 Special Edition"
+            5: "💋 Nude",
+            6: "🔮 Limited",
+            7: "🐦‍🔥 Exotic",
+            8: "🎐 Celestial Beauty"
         }
 
         allowed_rarities = [rarity_map[i] for i in range(1, 5)]
@@ -135,7 +136,7 @@ async def remove_spawn_after_timeout(chat_id, character, timeout):
         del spawned_characters[chat_id]
 
 
-@app.on_message(filters.command("fetch"))
+@app.on_message(filters.command("slave"))
 async def guess(_, message):
 
     chat_id = message.chat.id
@@ -197,10 +198,10 @@ async def guess(_, message):
 
         success_message = capsify(
             f"🎊 CONGRATULATIONS {message.from_user.first_name}!\n\n"
-            f"🌬️ NAME: {character['name']}\n"
-            f"🍹 ANIME: {character['anime']}\n"
-            f"🎐 RARITY: {character['rarity']}\n\n"
-            f"💝 CHARACTER ADDED TO YOUR COLLECTION!"
+            f"🌬️ WAIFU: {character['name']}\n"
+            f"🧧 ANIME: {character['anime']}\n"
+            f"🪼 RARITY: {character['rarity']}\n\n"
+            f"🕊️ CHARACTER ADDED TO YOUR COLLECTION!"
         )
 
         await message.reply_text(
