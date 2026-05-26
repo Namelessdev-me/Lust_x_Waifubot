@@ -8,6 +8,6 @@ PHOTO_URL = ["https://files.catbox.moe/82wsna.mp4"]
 SUPPORT_CHAT = "+hye3u0fBPO1lNjM1"
 UPDATE_CHAT = "lustXwaifu"
 BOT_USERNAME = "AniLust_Bot"
-CHARA_CHANNEL_ID = -1002486274374
+CHARA_CHANNEL_ID = -1003852106890
 MONGO_URL = "mongodb+srv://ra5836016_db_user:58360162004@cluster0.bqw1y2r.mongodb.net/?appName=Cluster0"
-DATABASE_NAME = "Lust_database"
+DATABASE_NAME = "LustXDatabase"
