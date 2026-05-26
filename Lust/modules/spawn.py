@@ -59,14 +59,14 @@ async def spawn_character(chat_id):
             9: "💦 Wet"
         }
 
-        # Spawn weights — Devine 0.1% chance, others scaled accordingly
+        
         rarity_weights = {
-            "⚪ Common":    55.0,
+            "⚪ Common":    30.0,
             "☘️ Medium":   22.0,
             "🔴 Rare":     12.0,
-            "🟡 Legendary": 6.0,
-            "💋 Nude":      2.5,
-            "🔮 Limited":   1.5,
+            "🟡 Legendary": 10.0,
+            "💋 Nude":      1.5,
+            "🔮 Limited":   2.5,
             "🐦‍🔥 Exotic":  0.6,
             "🎐 Devine":    0.1,
             "💦 Wet":       0.3,
@@ -77,7 +77,7 @@ async def spawn_character(chat_id):
         if not all_characters:
             return False
 
-        # Filter characters that have a valid rarity with a defined weight
+
         valid_characters = [c for c in all_characters if c.get('rarity') in rarity_weights]
 
         if not valid_characters:
@@ -89,10 +89,10 @@ async def spawn_character(chat_id):
         spawned_characters[chat_id] = character
 
         caption = (
-            f"🌬️ {capsify('A NEW CHARACTER HAS APPEARED!')} 🌊\n"
+            f"🌬️ {capsify('A NEW WAIFU HAS APPEARED!')} 🌊\n"
             f"{capsify('USE ')}/fetch {capsify('(NAME) TO CLAIM IT.')}\n\n"
-            f"🎐 {capsify('RARITY')}: {character['rarity']}\n"
-            f"🍹 {capsify('NAME REVEAL')}: {capsify('100 EXLIX')}"
+            f"🐚 {capsify('RARITY')}: {character['rarity']}\n"
+            f"🎐 {capsify('NAME REVEAL')}: {capsify('100 EXLIX')}"
         )
 
         keyboard = [[InlineKeyboardButton(capsify("NAME"), callback_data=f"name_{character['id']}")]]
@@ -129,8 +129,8 @@ async def remove_spawn_after_timeout(chat_id, character, timeout):
         keyboard = [[InlineKeyboardButton(capsify("HOW MANY TIME I FETCHED"), callback_data=f"count_{character['id']}")]]
 
         caption = capsify(
-            f"❌ No One Fetched ! 🏃‍♀️\n\n"
-            f"🌬️ {capsify('NAME')}: {character['name']}\n"
+            f"❌ No One Slaved ! 🏃‍♀️\n\n"
+            f"🌬️ {capsify('WAIFU')}: {character['name']}\n"
             f"🎐 {capsify('ANIME')}: {character['anime']}\n"
             f"🍹 {capsify('RARITY')}: {character['rarity']}\n"
             f"💬 {capsify('ID')}: {character['id']}\n\n"
@@ -155,7 +155,7 @@ async def remove_spawn_after_timeout(chat_id, character, timeout):
         del spawned_characters[chat_id]
 
 
-@app.on_message(filters.command("fetch"))
+@app.on_message(filters.command("slave"))
 async def guess(_, message):
 
     chat_id = message.chat.id
@@ -216,11 +216,11 @@ async def guess(_, message):
         keyboard = [[InlineKeyboardButton(capsify("CHECK MYSLAVES"), switch_inline_query_current_chat=f"collection.{user_id}")]]
 
         success_message = capsify(
-            f"🎊 CONGRATULATIONS {message.from_user.first_name}!\n\n"
-            f"🌬️ NAME: {character['name']}\n"
-            f"🍹 ANIME: {character['anime']}\n"
+            f"✨ CONGRATULATIONS {message.from_user.first_name}!\n\n"
+            f"🌬️ WAIFU: {character['name']}\n"
+            f"🧧 ANIME: {character['anime']}\n"
             f"🎐 RARITY: {character['rarity']}\n\n"
-            f"💝 CHARACTER ADDED TO YOUR COLLECTION!"
+            f"🎀 CHARACTER ADDED TO YOUR COLLECTION!"
         )
 
         await message.reply_text(
