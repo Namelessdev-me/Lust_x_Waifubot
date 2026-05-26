@@ -1,9 +1,10 @@
 from pyrogram import Client, filters
 from pyrogram.types import Message
+from pymongo import UpdateOne
 import re
 
-from . import sudo_filter, app
-from Lust import collection, CHARA_CHANNEL_ID
+from . import sudo_filter, app, capsify
+from Lust import collection, CHARA_CHANNEL_ID, user_collection
 from . import uploader_filter
 
 
@@ -166,25 +167,48 @@ async def upload_character(client: Client, message: Message):
 async def delete_character(client: Client, message: Message):
     args = message.text.split(maxsplit=1)[1:]
     if len(args) != 1:
-        await message.reply_text("Use: /delete id")
+        await message.reply_text(capsify("Use: /delete id"))
         return
-    character_id = args[0]
+
+    character_id = args[0].strip()
     character = await collection.find_one_and_delete({"id": character_id})
+
     if not character:
-        await message.reply_text("Character not found")
+        await message.reply_text(capsify(f"❌ Character with ID {character_id} not found!"))
         return
+
+    # Delete from channel
     try:
         await client.delete_messages(CHARA_CHANNEL_ID, character["message_id"])
-    except:
+    except Exception:
         pass
-    bulk=[]
+
+    # Remove from all users' collections
+    bulk = []
     async for user in user_collection.find():
         if "characters" in user:
-            user["characters"]=[c for c in user["characters"] if c["id"]!=character_id]
-            bulk.append(UpdateOne({"_id":user["_id"]},{"$set":{"characters":user["characters"]}}))
+            original_len = len(user["characters"])
+            user["characters"] = [c for c in user["characters"] if c["id"] != character_id]
+            if len(user["characters"]) != original_len:
+                bulk.append(UpdateOne({"_id": user["_id"]}, {"$set": {"characters": user["characters"]}}))
+
     if bulk:
         await user_collection.bulk_write(bulk)
-    await message.reply_text("Character deleted")
+
+    char_name = character.get("name", "Unknown")
+    char_anime = character.get("anime", "Unknown")
+    char_rarity = character.get("rarity", "Unknown")
+
+    await message.reply_text(
+        capsify(
+            f"✅ Character Deleted Successfully!\n\n"
+            f"🆔 ID: {character_id}\n"
+            f"👤 Name: {char_name}\n"
+            f"📺 Anime: {char_anime}\n"
+            f"✨ Rarity: {char_rarity}\n\n"
+            f"🗑 Removed from {len(bulk)} user(s) collection."
+        )
+    )
 
 @app.on_message(filters.command("update") & uploader_filter)
 async def update_character(client: Client, message: Message):

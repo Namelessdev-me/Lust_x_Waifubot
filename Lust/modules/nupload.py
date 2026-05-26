@@ -52,14 +52,15 @@ def upload_to_catbox(photo_path):
 
 @app.on_message(filters.command('upload') & uploader_filter)
 async def upload(client: Client, message: Message):
-    if not message.reply_to_message or not message.reply_to_message.photo:
+    replied = message.reply_to_message
+    if not replied or (not replied.photo and not replied.video):
         await message.reply_text(
             "📝 Upload Format:\n"
-            "Reply to an image with caption:\n\n"
+            "Reply to an image or video with caption:\n\n"
             "Name - Character Name\n"
             "Anime - Anime Name\n"
-            "Rarity - 1 to 7\n"
-            "Price - 83499"
+            "Rarity - 1 to 9\n"
+            "Price - 83"
         )
         return
 
@@ -122,7 +123,8 @@ async def upload(client: Client, message: Message):
         return
 
     try:
-        photo_path = await client.download_media(message.reply_to_message.photo)
+        media = message.reply_to_message.photo or message.reply_to_message.video
+        photo_path = await client.download_media(media)
         img_url = upload_to_catbox(photo_path)
 
         id = str(await get_next_character_id()).zfill(2)

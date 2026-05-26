@@ -7,7 +7,7 @@ from Lust import application, user_collection
 from . import add, deduct, show, app, sudo_filter
 from .block import block_dec, temp_block
 
-log_chat_id = -1002486274374
+log_chat_id = -1003551781050 
 
 last_usage_time = {}
 daily_code_usage = {}

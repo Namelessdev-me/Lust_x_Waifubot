@@ -37,7 +37,7 @@ async def give_character_command(client,message):
     except IndexError: await message.reply_text("Provide character ID.")
     except ValueError as e: await message.reply_text(str(e))
     except Exception as e:
-        print(e);await message.reply_text("done ✅.")
+        print(e);await message.reply_text("Error while processing command.")
 
 async def add_all_characters_for_user(user_id):
     user=await user_collection.find_one({'id':user_id})
