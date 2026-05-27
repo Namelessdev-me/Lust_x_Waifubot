@@ -73,7 +73,7 @@ async def check_guess(client, message: Message):
 
     if any(part in answer for part in name_parts):
         game_data['guessed'] = True
-        reward = random.randint(15, 20)
+        reward = random.randint(8000, 12000)
 
         await add(user_id, reward)
 
