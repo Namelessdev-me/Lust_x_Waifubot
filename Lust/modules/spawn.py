@@ -61,6 +61,19 @@ async def spawn_character(chat_id):
         }
 
         
+        rarity_enabled = {
+            "⚪ Common":    True,
+            "☘️ Medium":   True,
+            "🔴 Rare":     True,
+            "🟡 Legendary": True,
+            "💋 Nude":      True,
+            "🔮 Limited":   True,
+            "🐦‍🔥 Exotic":  True,
+            "🎐 Devine":    True,
+            "💦 Wet":       True,
+            "🎥 Animation": True
+        }
+
         rarity_weights = {
             "⚪ Common":    55.0,
             "☘️ Medium":   22.0,
@@ -74,18 +87,22 @@ async def spawn_character(chat_id):
             "🎥 Animation": 0.1
         }
 
+
+        active_weights = {r: w for r, w in rarity_weights.items() if rarity_enabled.get(r, True)}
+
         all_characters = await collection.find({}).to_list(length=None)
 
         if not all_characters:
             return False
 
 
-        valid_characters = [c for c in all_characters if c.get('rarity') in rarity_weights]
+        valid_characters = [c for c in all_characters if c.get('rarity') in active_weights]
 
         if not valid_characters:
+            # Fallback: agar koi bhi enabled rarity ka character na mile toh sab use karo
             valid_characters = all_characters
 
-        weights = [rarity_weights.get(c.get('rarity', ''), 1.0) for c in valid_characters]
+        weights = [active_weights.get(c.get('rarity', ''), 1.0) for c in valid_characters]
         character = random.choices(valid_characters, weights=weights, k=1)[0]
 
         spawned_characters[chat_id] = character
@@ -288,4 +305,5 @@ async def handle_count_button(_, callback_query):
     await callback_query.answer(
         capsify(f"YOU HAVE {count} OF THIS CHARACTER."),
         show_alert=True
-    )
+        )
+        
