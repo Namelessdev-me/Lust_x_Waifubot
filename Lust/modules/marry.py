@@ -29,7 +29,7 @@ async def update_cooldown_in_db(user_id):
     except Exception as e:
         print(f"Error updating cooldown in DB: {e}")
 
-async def get_unique_characters(receiver_id, target_rarities =['⚪ Common', '☘️ Medium', '🔴 Rare', '🟡 Legendary', '💋 Nude', '🔮 Limited', '🐦‍🔥 Exotic', '🎐 Devine', '💦 Wet']):
+async def get_unique_characters(receiver_id, target_rarities =['⚪ Common', '☘️ Medium', '🔴 Rare', '🟡 Legendary', '🔮 Limited']):
     try:
         user = await user_collection.find_one({'id': receiver_id}, {'characters': 1})
         owned_ids = [char['id'] for char in user['characters']] if user and 'characters' in user else []
