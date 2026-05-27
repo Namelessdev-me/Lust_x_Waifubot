@@ -19,7 +19,7 @@ async def random_daily_reward(client, message):
     user_id = message.from_user.id
 
     if message.reply_to_message:
-        await message.reply_text(capsify("Fuck Explore a orc den and got 10000 Exlix.⚡"))
+        await message.reply_text(capsify("Fuck Explore a orc den Exlix.⚡"))
         return
 
     if user_id in user_cooldowns and (datetime.utcnow() - user_cooldowns[user_id]) < timedelta(seconds=COOLDOWN_DURATION):
@@ -36,7 +36,7 @@ async def random_daily_reward(client, message):
 
     await deduct(user_id, crime_fee)
 
-    random_reward = random.randint(1, 5)
+    random_reward = random.randint(3000, 5000)
 
     congratulatory_messages = [
         "Explore a dungeon",
