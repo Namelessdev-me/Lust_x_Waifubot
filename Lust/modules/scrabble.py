@@ -14,6 +14,19 @@ WIN_LIMIT = 3
 COOLDOWN_TIME = 30
 cooldown_users = {}
 
+SCRABBLE_RARITY_ENABLED = {
+    "⚪ Common":    True,
+    "☘️ Medium":   True,
+    "🔴 Rare":     True,
+    "🟡 Legendary": True,
+    "💋 Nude":      False,
+    "🔮 Limited":   True,
+    "🐦‍🔥 Exotic":  False,
+    "🎐 Devine":    False,
+    "💦 Wet":       False,
+    "🎥 Animation": False
+}
+
 def is_new_day(last_win_time):
     ist = timezone('Asia/Kolkata')
     now_ist = datetime.now(ist)
@@ -25,8 +38,18 @@ async def get_random_character():
     all_characters = await collection.find({
         'id': {'$gte': '01', '$lte': '1100'}
     }).to_list(length=None)
+
+
+    enabled_characters = [
+        c for c in all_characters
+        if SCRABBLE_RARITY_ENABLED.get(c.get('rarity', ''), True)
+    ]
+
+
+    pool = enabled_characters if enabled_characters else all_characters
+
     while True:
-        character = random.choice(all_characters)
+        character = random.choice(pool)
         if len(character['name'].split()[0]) > 3:
             return character
 
@@ -171,3 +194,4 @@ async def xscrabble(client, message: Message):
         await message.reply_text(capsify("Your current game has been terminated."))
     else:
         await message.reply_text(capsify("You don't have an active game to terminate."))
+    
