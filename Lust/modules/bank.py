@@ -72,8 +72,8 @@ async def withdraw(client: Client, message: Message):
 async def loan(client: Client, message: Message):
     try:
         loan_amount = int(message.command[1])
-        if loan_amount <= 0 or loan_amount > 10000000000000:
-            raise ValueError("Amount must be between 1 and 10000000000000.")
+        if loan_amount <= 0 or loan_amount > 400000:
+            raise ValueError("Amount must be between 1 and 400000.")
     except (IndexError, ValueError) as e:
         await handle_error(client, message, e)
         return
@@ -90,14 +90,14 @@ async def loan(client: Client, message: Message):
         current_time = datetime.now()
         last_loan_date = user_data.get('last_loan_date')
 
-        # Check if the user is eligible for a new loan
+
         if last_loan_date:
             days_since_last_loan = (current_time - last_loan_date).days
             if days_since_last_loan < 7:
                 await message.reply_text(capsify(f"You can only take a loan once every 7 days. Try again in {7 - days_since_last_loan} days."))
                 return
 
-        # Check for existing loans
+
         if 'loan_amount' in user_data and user_data['loan_amount'] > 0:
             loan_due_date = user_data.get('loan_due_date')
 
@@ -114,7 +114,7 @@ async def loan(client: Client, message: Message):
             await message.reply_text(capsify("You tried to exploit the loan system. Your balance and saved amount have been reset to 0 as a penalty."))
             return
 
-        # Approve new loan
+
         loan_due_date = current_time + timedelta(days=10)
 
         new_balance = int(user_data.get('balance', 0)) + loan_amount
