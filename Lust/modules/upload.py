@@ -17,7 +17,8 @@ rarity_map = {
 6: "🔮 Limited",
 7: "🐦‍🔥 Exotic",
 8: "🎐 Devine",
-9: "💦 Wet"
+9: "💦 Wet",
+10: "🎥 Animation"
 }
 
 
@@ -62,27 +63,57 @@ async def upload_character(client: Client, message: Message):
 
     reply = message.reply_to_message
 
-    if not reply or not reply.caption:
-        await message.reply_text("Reply to photo/video with caption.")
+    if not reply or (not reply.photo and not reply.video):
+        await message.reply_text(
+            "📝 Upload Format:\n"
+            "Reply to a photo or video with caption:\n\n"
+            "Name - Character Name\n"
+            "Anime - Anime Name\n"
+            "Rarity - 1 to 9\n"
+            "Price - 83"
+        )
         return
 
+    if not reply.caption:
+        await message.reply_text("❌ Please add caption to the photo/video!\n\nFormat:\nName - ...\nAnime - ...\nRarity - 1 to 9\nPrice - 83")
+        return
 
     caption = reply.caption
 
-    try:
-        name = re.search(r"Name\s*-\s*(.*)", caption).group(1)
-        anime = re.search(r"Anime\s*-\s*(.*)", caption).group(1)
-        rarity_number = int(re.search(r"Rarity\s*-\s*(\d+)", caption).group(1))
-        price = int(re.search(r"Price\s*-\s*(\d+)", caption).group(1))
-    except:
-        await message.reply_text("Invalid caption format.")
+    name = re.search(r"Name\s*-\s*(.*)", caption)
+    anime = re.search(r"Anime\s*-\s*(.*)", caption)
+    rarity_match = re.search(r"Rarity\s*-\s*(\d+)", caption)
+    price_match = re.search(r"Price\s*-\s*(\d+)", caption)
+
+    missing = []
+    if not name:       missing.append("Name")
+    if not anime:      missing.append("Anime")
+    if not rarity_match: missing.append("Rarity")
+    if not price_match:  missing.append("Price")
+
+    if missing:
+        await message.reply_text(f"❌ Missing fields: {', '.join(missing)}\n\nFormat:\nName - ...\nAnime - ...\nRarity - 1 to 9\nPrice - 83")
         return
 
+    name = name.group(1).strip()
+    anime = anime.group(1).strip()
+    rarity_number = int(rarity_match.group(1))
+    price = int(price_match.group(1))
 
-    rarity = rarity_map.get(rarity_number)
+    # Video uploads → auto rarity 🎥 Animation (override whatever user gave)
+    if reply.video:
+        rarity = "🎥 Animation"
+    else:
+        rarity = rarity_map.get(rarity_number)
+        if not rarity:
+            await message.reply_text(
+                "❌ Invalid rarity! Use 1 to 9\n\n" +
+                "\n".join([f"{k} - {v}" for k, v in rarity_map.items() if k != 10])
+            )
+            return
 
     rarity_emoji = rarity.split(" ")[0]
-    rarity_name = rarity.split(" ",1)[1]
+    rarity_name = rarity.split(" ", 1)[1]
 
 
     emoji_match = re.search(r'\[(.*?)\]', name)

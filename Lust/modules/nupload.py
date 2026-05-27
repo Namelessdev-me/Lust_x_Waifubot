@@ -1,4 +1,3 @@
-import requests
 from pyrogram import Client, filters
 from pyrogram.types import Message
 from pymongo import ReturnDocument
@@ -16,7 +15,8 @@ rarity_map = {
     6: "🔮 Limited",
     7: "🐦‍🔥 Exotic",
     8: "🎐 Devine",
-    9: "💦 Wet"
+    9: "💦 Wet",
+    10: "🎥 Animation"
 }
 
 
@@ -35,19 +35,6 @@ async def get_next_character_id():
     return current
 
 
-def upload_to_catbox(photo_path):
-    url = "https://catbox.moe/user/api.php"
-    with open(photo_path, 'rb') as photo:
-        response = requests.post(
-            url,
-            data={'reqtype': 'fileupload'},
-            files={'fileToUpload': photo}
-        )
-
-    if response.status_code == 200 and response.text.startswith("https://"):
-        return response.text.strip()
-    else:
-        raise Exception(f"Catbox upload failed: {response.text}")
 
 
 @app.on_message(filters.command('upload') & uploader_filter)
@@ -112,39 +99,59 @@ async def upload(client: Client, message: Message):
             return
 
         rarity_num = int(rarity_str)
-        if rarity_num not in rarity_map:
-            await message.reply_text("❌ Invalid rarity! Use 1–9")
-            return
-
-        rarity = rarity_map[rarity_num]
+        # Video → auto Animation rarity, ignore user input
+        is_video = bool(message.reply_to_message.video)
+        if is_video:
+            rarity = "🎥 Animation"
+        else:
+            if rarity_num not in rarity_map or rarity_num == 10:
+                await message.reply_text("❌ Invalid rarity! Use 1–9")
+                return
+            rarity = rarity_map[rarity_num]
 
     except Exception as e:
         await message.reply_text(f"❌ Error parsing caption: {e}")
         return
 
     try:
-        media = message.reply_to_message.photo or message.reply_to_message.video
-        photo_path = await client.download_media(media)
-        img_url = upload_to_catbox(photo_path)
+        replied = message.reply_to_message
+        is_video = bool(replied.video)
+
+        # Use file_id directly — no download, no catbox
+        if is_video:
+            file_id = replied.video.file_id
+        else:
+            file_id = replied.photo.file_id
 
         id = str(await get_next_character_id()).zfill(2)
         formatted_price = f"{price:,}"
 
-        sent_message = await client.send_photo(
-            chat_id="@anifetchdatabase",
-            photo=img_url,
-            caption=(
-                f"Character Name: {character_name}\n"
-                f"Anime Name: {anime}\n"
-                f"Quality: {rarity}\n"
-                f"Price: {formatted_price} Exlix\n"
-                f"ID: {id}\n"
-                f"Added by: {message.from_user.mention}"
-            )
+        chan_caption = (
+            f"Character Name: {character_name}\n"
+            f"Anime Name: {anime}\n"
+            f"Quality: {rarity}\n"
+            f"Price: {formatted_price} Exlic\n"
+            f"ID: {id}\n"
+            f"Added by: {message.from_user.mention}"
         )
 
+        from Lust import CHARA_CHANNEL_ID
+        if is_video:
+            sent_message = await client.send_video(
+                chat_id=CHARA_CHANNEL_ID,
+                video=file_id,
+                caption=chan_caption
+            )
+        else:
+            sent_message = await client.send_photo(
+                chat_id=CHARA_CHANNEL_ID,
+                photo=file_id,
+                caption=chan_caption
+            )
+
         character = {
-            "img_url": img_url,
+            "img_url": file_id,
+            "type": "video" if is_video else "photo",
             "name": character_name,
             "anime": anime,
             "rarity": rarity,
@@ -157,11 +164,12 @@ async def upload(client: Client, message: Message):
 
         await message.reply_text(
             f"✅ CHARACTER ADDED SUCCESSFULLY!\n\n"
-            f"Name: {character_name}\n"
-            f"Anime: {anime}\n"
-            f"Rarity: {rarity}\n"
-            f"Price: {formatted_price} Exlix\n"
-            f"ID: {id}"
+            f"{'🎥' if is_video else '🖼'} Type  : {'Video' if is_video else 'Photo'}\n"
+            f"👤 Name  : {character_name}\n"
+            f"📺 Anime : {anime}\n"
+            f"✨ Rarity: {rarity}\n"
+            f"💰 Price : {formatted_price} Exlic\n"
+            f"🆔 ID    : {id}"
         )
 
     except Exception as e:

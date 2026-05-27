@@ -138,7 +138,7 @@ async def cred(_, message):
         ])
     )
 
-@app.on_callback_query(filters.regex("credits"))
+@app.on_callback_query(filters.regex("^credits$"))
 @block_cbq
 async def credcb(_, callback_query):
     await callback_query.edit_message_text(
@@ -151,7 +151,7 @@ async def credcb(_, callback_query):
         ])
     )
 
-@app.on_callback_query(filters.regex("sdev"))
+@app.on_callback_query(filters.regex("^sdev$"))
 @block_cbq
 async def sdev(_, callback_query):
     await callback_query.edit_message_text(
@@ -162,20 +162,22 @@ async def sdev(_, callback_query):
     )
 
     dev_buttons = []
+    seen_ids = set()
     async for user in devb.find():
         dev_id = user.get("user_id")
-        if dev_id:
+        if dev_id and dev_id not in seen_ids:
+            seen_ids.add(dev_id)
             user_data = await user_collection.find_one({"id": dev_id})
             first_name = user_data.get("first_name", "Unknown") if user_data else "Unknown"
             dev_buttons.append(IKB(capsify(first_name), user_id=dev_id))
 
     rows = [dev_buttons[i:i+3] for i in range(0, min(len(dev_buttons), 12), 3)]
     await callback_query.edit_message_text(
-        text=capsify("**Developers:**"),
+        text=capsify("Developers:"),
         reply_markup=IKM(rows + [[IKB(capsify("Back"), callback_data="credits")]])
     )
 
-@app.on_callback_query(filters.regex("ssudo"))
+@app.on_callback_query(filters.regex("^ssudo$"))
 @block_cbq
 async def ssudo(_, callback_query):
     await callback_query.edit_message_text(
@@ -186,20 +188,22 @@ async def ssudo(_, callback_query):
     )
 
     sudo_buttons = []
+    seen_ids = set()
     async for user in sudb.find():
         sudo_id = user.get("user_id")
-        if sudo_id:
+        if sudo_id and sudo_id not in seen_ids:
+            seen_ids.add(sudo_id)
             user_data = await user_collection.find_one({"id": sudo_id})
             first_name = user_data.get("first_name", "Unknown") if user_data else "Unknown"
             sudo_buttons.append(IKB(capsify(first_name), user_id=sudo_id))
 
     rows = [sudo_buttons[i:i+3] for i in range(0, min(len(sudo_buttons), 12), 3)]
     await callback_query.edit_message_text(
-        text=capsify("**Sudos:**"),
+        text=capsify("Sudos:"),
         reply_markup=IKM(rows + [[IKB(capsify("Back"), callback_data="credits")]])
     )
 
-@app.on_callback_query(filters.regex("suploader"))
+@app.on_callback_query(filters.regex("^suploader$"))
 @block_cbq
 async def suploader(_, callback_query):
     await callback_query.edit_message_text(
@@ -210,20 +214,22 @@ async def suploader(_, callback_query):
     )
 
     uploader_buttons = []
+    seen_ids = set()
     async for user in uploaderdb.find():
         uploader_id = user.get("user_id")
-        if uploader_id:
+        if uploader_id and uploader_id not in seen_ids:
+            seen_ids.add(uploader_id)
             user_data = await user_collection.find_one({"id": uploader_id})
             first_name = user_data.get("first_name", "Unknown") if user_data else "Unknown"
             uploader_buttons.append(IKB(capsify(first_name), user_id=uploader_id))
 
     rows = [uploader_buttons[i:i+3] for i in range(0, min(len(uploader_buttons), 12), 3)]
     await callback_query.edit_message_text(
-        text=capsify("**Uploaders:**"),
+        text=capsify("Uploaders:"),
         reply_markup=IKM(rows + [[IKB(capsify("Back"), callback_data="credits")]])
     )
 
-@app.on_callback_query(filters.regex("main"))
+@app.on_callback_query(filters.regex("^main$"))
 async def main(_, callback_query):
     random_video = random.choice(PHOTO_URL)
     await callback_query.edit_message_text(

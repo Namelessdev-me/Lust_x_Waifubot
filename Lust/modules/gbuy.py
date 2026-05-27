@@ -18,7 +18,8 @@ rarity_map = {
     6: "🔮 Limited",
     7: "🐦‍🔥 Exotic",
     8: "🎐 Devine",
-    9: "💦 Wet"
+    9: "💦 Wet",
+    10: "🎥 Animation"
 }
 
 def is_allowed_time():

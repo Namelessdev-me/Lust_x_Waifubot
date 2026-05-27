@@ -56,7 +56,8 @@ async def spawn_character(chat_id):
             6: "🔮 Limited",
             7: "🐦‍🔥 Exotic",
             8: "🎐 Devine",
-            9: "💦 Wet"
+            9: "💦 Wet",
+    10: "🎥 Animation"
         }
 
         # Spawn weights — Devine 0.1% chance, others scaled accordingly

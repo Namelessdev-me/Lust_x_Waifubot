@@ -15,7 +15,8 @@ rarity_map = {
     6: "🔮 Limited",
     7: "🐦‍🔥 Exotic",
     8: "🎐 Devine",
-    9: "💦 Wet"
+    9: "💦 Wet",
+    10: "🎥 Animation"
 }
 
 rarity_name_to_code = {
@@ -28,6 +29,7 @@ rarity_name_to_code = {
     "exotic": 7,
     "devine": 8,
     "wet": 9,
+    "animation": 10,
     "all": "all"
 }
 
@@ -46,7 +48,8 @@ async def cmode(client, message):
         [IKB("🔴 Rare", f"cmode:rare:{user_id}"), IKB("🟡 Legendary", f"cmode:legendary:{user_id}")],
         [IKB("💋 Nude", f"cmode:nude:{user_id}"), IKB("🔮 Limited", f"cmode:limited:{user_id}")],
         [IKB("🐦‍🔥 Exotic", f"cmode:exotic:{user_id}"), IKB("🎐 Devine", f"cmode:devine:{user_id}")],
-        [IKB("💦 Wet", f"cmode:wet:{user_id}"), IKB("All", f"cmode:all:{user_id}")]
+        [IKB("💦 Wet", f"cmode:wet:{user_id}"), IKB("🎥 Animation", f"cmode:animation:{user_id}")],
+        [IKB("All", f"cmode:all:{user_id}")]
     ]
     reply_markup = IKM(cmode_buttons)
 
