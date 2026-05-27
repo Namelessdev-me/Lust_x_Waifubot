@@ -2,8 +2,10 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 from pymongo import ReturnDocument
 import random
+import re
 from . import uploader_filter, app
 from Lust import collection, db, CHARA_CHANNEL_ID
+from .upload import CATEGORY_MAP
 
 
 rarity_map = {
@@ -99,7 +101,7 @@ async def upload(client: Client, message: Message):
             return
 
         rarity_num = int(rarity_str)
-        # Video → auto Animation rarity, ignore user input
+
         is_video = bool(message.reply_to_message.video)
         if is_video:
             rarity = "🎥 Animation"
@@ -117,23 +119,35 @@ async def upload(client: Client, message: Message):
         replied = message.reply_to_message
         is_video = bool(replied.video)
 
-        # Use file_id directly — no download, no catbox
+
         if is_video:
             file_id = replied.video.file_id
         else:
             file_id = replied.photo.file_id
 
         id = str(await get_next_character_id()).zfill(2)
-        formatted_price = f"{price:,}"
+
+
+        rarity_emoji = rarity.split(" ")[0]
+        rarity_name = rarity.split(" ", 1)[1]
+        emoji_match = re.search(r'\[(.*?)\]', character_name)
+        category_line = ""
+        if emoji_match:
+            emoji = emoji_match.group(1)
+            if emoji in CATEGORY_MAP:
+                category_line = CATEGORY_MAP[emoji]
+
+        added_by = message.from_user.first_name
 
         chan_caption = (
-            f"Character Name: {character_name}\n"
-            f"Anime Name: {anime}\n"
-            f"Quality: {rarity}\n"
-            f"Price: {formatted_price} Exlic\n"
-            f"ID: {id}\n"
-            f"Added by: {message.from_user.mention}"
+            f"OwO! Check out this character!\n\n"
+            f"{anime}\n"
+            f"{id}: {character_name}\n\n"
+            f"({rarity_emoji} 𝙍𝘼𝙍𝙄𝙏𝙔: {rarity_name})\n"
         )
+        if category_line:
+            chan_caption += f"\n{category_line}\n"
+        chan_caption += f"\n➼ ᴀᴅᴅᴇᴅ ʙʏ: {added_by}"
 
         from Lust import CHARA_CHANNEL_ID
         if is_video:
@@ -174,3 +188,4 @@ async def upload(client: Client, message: Message):
 
     except Exception as e:
         await message.reply_text(f"❌ An error occurred: {e}")
+
