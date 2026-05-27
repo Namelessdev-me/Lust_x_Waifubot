@@ -80,16 +80,16 @@ async def bonus_claim_handler(_, query):
     if bonus_type == "daily":
         if bonus_status["daily"] and bonus_status["daily"] > today:
             return await query.answer("You have already claimed your daily bonus!", show_alert=True)
-        await add(user_id, 25)
+        await add(user_id, 15000)
         await update_bonus_status(user_id, "daily")
-        await query.answer("Successfully claimed your daily bonus of 25 Exlix!", show_alert=True)
+        await query.answer("Successfully claimed your daily bonus of 15000 Exlix!", show_alert=True)
 
     elif bonus_type == "weekly":
         if bonus_status["weekly"] and bonus_status["weekly"] > today:
             return await query.answer("You have already claimed your weekly bonus!", show_alert=True)
-        await add(user_id, 300)
+        await add(user_id, 200000)
         await update_bonus_status(user_id, "weekly")
-        await query.answer("Successfully claimed your weekly bonus of 300 Exlix!", show_alert=True)
+        await query.answer("Successfully claimed your weekly bonus of 200000 Exlix!", show_alert=True)
 
     updated_bonus_status = await get_bonus_status(user_id)
     daily_status = (
