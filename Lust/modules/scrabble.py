@@ -10,7 +10,7 @@ from .block import block_dec, temp_block
 
 active_scrabbles = {}
 MAX_ATTEMPTS = 5
-WIN_LIMIT = 5
+WIN_LIMIT = 3
 COOLDOWN_TIME = 30
 cooldown_users = {}
 
@@ -21,7 +21,7 @@ def is_new_day(last_win_time):
     return now_ist.date() != last_win_ist.date()
 
 async def get_random_character():
-    # Updated to use new rarity system - no excluded rarities now
+    
     all_characters = await collection.find({
         'id': {'$gte': '01', '$lte': '1100'}
     }).to_list(length=None)
@@ -131,9 +131,9 @@ async def check_answer(client, message: Message):
             
             await user_collection.update_one({'id': user_id}, {'$push': {'characters': scrabble_data['character']}})
             if user_data['wins'] == WIN_LIMIT:
-                await message.reply_text(capsify("🎉 You won 5 games today! Now you will get Exlix instead of characters. 🪙"))
+                await message.reply_text(capsify("🎉 You won 3 games today! Now you will get Exlix instead of characters. 🪙"))
         else:
-            exlix = random.randint(10, 15)
+            exlix = random.randint(15000, 20000)
             await message.reply_text(capsify(f"💰 You've won {exlix} Exlix! 💰"))
             await add(user_id, exlix)
 
