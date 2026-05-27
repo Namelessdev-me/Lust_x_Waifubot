@@ -1,6 +1,7 @@
 from pyrogram import Client, filters
 from pyrogram.types import Message
-from . import app, OWNER_ID, capsify, user_collection
+from . import app, capsify, user_collection
+import OWNER_ID
 
 
 @app.on_message(filters.command("resetbal") & OWNER_ID)
