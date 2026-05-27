@@ -57,10 +57,10 @@ async def spawn_character(chat_id):
             7: "🐦‍🔥 Exotic",
             8: "🎐 Devine",
             9: "💦 Wet",
-    10: "🎥 Animation"
+           10: "🎥 Animation"
         }
 
-        # Spawn weights — Devine 0.1% chance, others scaled accordingly
+        
         rarity_weights = {
             "⚪ Common":    55.0,
             "☘️ Medium":   22.0,
@@ -78,7 +78,7 @@ async def spawn_character(chat_id):
         if not all_characters:
             return False
 
-        # Filter characters that have a valid rarity with a defined weight
+
         valid_characters = [c for c in all_characters if c.get('rarity') in rarity_weights]
 
         if not valid_characters:
@@ -91,7 +91,7 @@ async def spawn_character(chat_id):
 
         caption = (
             f"🌬️ {capsify('A NEW CHARACTER HAS APPEARED!')} 🌊\n"
-            f"{capsify('USE ')}/fetch {capsify('(NAME) TO CLAIM IT.')}\n\n"
+            f"{capsify('USE ')}/slave {capsify('(NAME) TO CLAIM IT.')}\n\n"
             f"🎐 {capsify('RARITY')}: {character['rarity']}\n"
             f"🍹 {capsify('NAME REVEAL')}: {capsify('100 EXLIX')}"
         )
@@ -130,12 +130,10 @@ async def remove_spawn_after_timeout(chat_id, character, timeout):
         keyboard = [[InlineKeyboardButton(capsify("HOW MANY TIME I FETCHED"), callback_data=f"count_{character['id']}")]]
 
         caption = capsify(
-            f"❌ No One Fetched ! 🏃‍♀️\n\n"
+            f"❌ No One slaved ! 🏃‍♀️\n\n"
             f"🌬️ {capsify('NAME')}: {character['name']}\n"
             f"🎐 {capsify('ANIME')}: {character['anime']}\n"
             f"🍹 {capsify('RARITY')}: {character['rarity']}\n"
-            f"💬 {capsify('ID')}: {character['id']}\n\n"
-            f"🍫 {capsify('BETTER LUCK NEXT TIME!')}"
         )
 
         if character.get("type") == "video":
@@ -156,7 +154,7 @@ async def remove_spawn_after_timeout(chat_id, character, timeout):
         del spawned_characters[chat_id]
 
 
-@app.on_message(filters.command("fetch"))
+@app.on_message(filters.command("slave"))
 async def guess(_, message):
 
     chat_id = message.chat.id
@@ -217,11 +215,11 @@ async def guess(_, message):
         keyboard = [[InlineKeyboardButton(capsify("CHECK MYSLAVES"), switch_inline_query_current_chat=f"collection.{user_id}")]]
 
         success_message = capsify(
-            f"🎊 CONGRATULATIONS {message.from_user.first_name}!\n\n"
+            f"✨ CONGRATULATIONS {message.from_user.first_name}!\n\n"
             f"🌬️ NAME: {character['name']}\n"
-            f"🍹 ANIME: {character['anime']}\n"
-            f"🎐 RARITY: {character['rarity']}\n\n"
-            f"💝 CHARACTER ADDED TO YOUR COLLECTION!"
+            f"🧧 ANIME: {character['anime']}\n"
+            f"🪼 RARITY: {character['rarity']}\n\n"
+            f"🕊️ CHARACTER ADDED TO YOUR COLLECTION!"
         )
 
         await message.reply_text(
