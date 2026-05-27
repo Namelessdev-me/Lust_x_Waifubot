@@ -27,7 +27,7 @@ async def set_claim_time(user_id, claim_time):
 async def get_chars():
     try:
         # Updated target rarities for the new 1-7 system
-        target_rarities = ['⚪ Common', '☘️ Medium', '🔴 Rare', '🟡 Legendary', '💋 Nude', '🔮 Limited', '🐦‍🔥 Exotic', '🎐 Devine', '💦 Wet']
+        target_rarities = ['⚪ Common', '☘️ Medium', '🔴 Rare', '🟡 Legendary', '🔮 Limited']
         pipeline = [
             {'$match': {'rarity': {'$in': target_rarities}}},
             {'$sample': {'size': 1}}
