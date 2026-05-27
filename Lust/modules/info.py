@@ -64,15 +64,22 @@ async def check(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
     user_id = query.from_user.id
 
-    data = query.data.split('_')
-    character_id = data[1]
+    data = query.data  
+    parts = data.split('_')
+
+    if len(parts) == 2:
+        character_id = parts[1]
+    elif len(parts) >= 3:
+        character_id = parts[-1]
+    else:
+        await query.answer(capsify("Invalid data."), show_alert=True)
+        return
 
     user_data = await user_collection.find_one({'id': user_id})
 
     if user_data:
         characters = user_data.get('characters', [])
-        quantity = sum(1 for char in characters if char['id'] == character_id)
-
+        quantity = sum(1 for char in characters if str(char.get('id', '')) == str(character_id))
         await query.answer(
             capsify(f"You have {quantity} of this character."),
             show_alert=True
@@ -86,3 +93,4 @@ async def check(update: Update, context: CallbackContext) -> None:
 
 application.add_handler(CommandHandler('check', details, block=False))
 application.add_handler(CallbackQueryHandler(check, pattern="check_"))
+    
