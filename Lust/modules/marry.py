@@ -136,8 +136,8 @@ async def dice_command(client, message):
     last_roll_time = await get_cooldown_from_db(user_id)
     if last_roll_time:
         cooldown_time = (datetime.utcnow() - last_roll_time).total_seconds()
-        if cooldown_time < 3600:
-            remaining_time = 3600 - cooldown_time
+        if cooldown_time < 45:
+            remaining_time = 45- cooldown_time
             hours, remainder = divmod(int(remaining_time), 3600)
             minutes, seconds = divmod(remainder, 60)
             await client.send_message(
