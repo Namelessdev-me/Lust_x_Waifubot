@@ -4,8 +4,8 @@ from datetime import datetime, timedelta
 from . import ac, rc, app, user_collection, collection, capsify 
 from .block import block_dec, temp_block
 
-
-ALLOWED_GROUP_USERNAME = -1003975062619
+MAIN_GC_ID = -1003975062619
+MAIN_GC_LINK = "https://t.me/LustXGroups"
 
 async def get_claim_time(user_id):
     try:
@@ -31,7 +31,7 @@ async def get_chars():
     try:
         target_rarities = ['⚪ Common', '☘️ Medium', '🔴 Rare', '🟡 Legendary', '🔮 Limited']
         pipeline = [
-            {'$match': {'rarity': {'$in': target_rarities}}},
+            {'$match': {'rarity': {'$in': target_rarities}}}, 
             {'$sample': {'size': 1}}
         ]
         cursor = collection.aggregate(pipeline)
@@ -51,24 +51,16 @@ async def pslave(client: Client, message):
     if temp_block(user_id):
         return
 
-    # Check if command is used in the allowed group
-    try:
-        chat = await client.get_chat(chat_id)
-        chat_username = chat.username if chat.username else ""
-        
-        # Agar LustXGroups group mein nahi hai toh join button dikhao
-        if chat_username != ALLOWED_GROUP_USERNAME:
-            buttons = InlineKeyboardMarkup([
-                [InlineKeyboardButton("🔗 JOIN TO CLAIM", url="https://t.me/LustXGroups")]
-            ])
-            await message.reply_text(
-                "⚠️ **This command only works in @LustXGroups!**\n\nJoin our main group to claim your daily slaves:",
-                reply_markup=buttons,
-                quote=True
-            )
-            return
-    except:
-        pass
+    # Sirf main GC mein allow karo
+    if chat_id != MAIN_GC_ID:
+        await message.reply_text(
+            capsify("❌ hclaim command only works in our main group!"),
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("✨ Join Main GC", url=MAIN_GC_LINK)]
+            ]),
+            quote=True
+        )
+        return
 
     now = datetime.now()
     last_claim_date = await get_claim_time(user_id)
@@ -107,3 +99,4 @@ async def pslave(client: Client, message):
     except Exception as e:
         print(f"Error in pslave: {e}")
         await message.reply_text(capsify("An error occurred while processing your request."), quote=True)
+        
