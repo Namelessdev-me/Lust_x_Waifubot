@@ -4,7 +4,8 @@ from datetime import datetime, timedelta
 from . import ac, rc, app, user_collection, collection, capsify 
 from .block import block_dec, temp_block
 
-ALLOWED_GROUP_ID = -1003975062619
+
+ALLOWED_GROUP_USERNAME = -1003975062619
 
 async def get_claim_time(user_id):
     try:
@@ -40,15 +41,6 @@ async def get_chars():
         print(f"Error in get_chars: {e}")
         return []
 
-async def user_joined_allowed_group(user_id):
-    try:
-        member = await app.get_chat_member(ALLOWED_GROUP_ID, user_id)
-        if member.status in ["member", "administrator", "creator"]:
-            return True
-        return False
-    except:
-        return False
-
 @app.on_message(filters.command("hclaim"))
 @block_dec
 async def pslave(client: Client, message):
@@ -59,17 +51,24 @@ async def pslave(client: Client, message):
     if temp_block(user_id):
         return
 
-
-    if not await user_joined_allowed_group(user_id):
-        buttons = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🔗 JOIN GROUP", url="https://t.me/LustXGroups")]
-        ])
-        await message.reply_text(
-            "⚠️ **You need to join our main group to claim your daily slaves!**\n\nPress the button below to join:",
-            reply_markup=buttons,
-            quote=True
-        )
-        return
+    # Check if command is used in the allowed group
+    try:
+        chat = await client.get_chat(chat_id)
+        chat_username = chat.username if chat.username else ""
+        
+        # Agar LustXGroups group mein nahi hai toh join button dikhao
+        if chat_username != ALLOWED_GROUP_USERNAME:
+            buttons = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔗 JOIN TO CLAIM", url="https://t.me/LustXGroups")]
+            ])
+            await message.reply_text(
+                "⚠️ **This command only works in @LustXGroups!**\n\nJoin our main group to claim your daily slaves:",
+                reply_markup=buttons,
+                quote=True
+            )
+            return
+    except:
+        pass
 
     now = datetime.now()
     last_claim_date = await get_claim_time(user_id)
