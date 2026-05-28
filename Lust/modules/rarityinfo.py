@@ -10,7 +10,7 @@ RARITY_LIST = [
     ("🟡 Legendary", 6.0,  "Very rare. Flex worthy."),
     ("💋 Nude",      2.5,  "Exclusive & spicy. Hard to get."),
     ("🔮 Limited",   1.5,  "Limited supply. Trade carefully."),
-    ("🐦‍🔥 Exotic",  0.6,  "Almost impossible. Extremely valuable."),
+    ("🐦‍🔥 Exotic",  0.0,  "Almost impossible. Extremely valuable."),
     ("💦 Wet",       0.3,  "Ultra rare. Only the lucky find these."),
     ("🎐 Devine",    0.1,  "The rarest of all. 0.1% spawn chance!"),
 ]
