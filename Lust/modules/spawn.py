@@ -68,7 +68,7 @@ async def spawn_character(chat_id):
             "🟡 Legendary": True,
             "💋 Nude":      True,
             "🔮 Limited":   True,
-            "🐦‍🔥 Exotic":  True,
+            "🐦‍🔥 Exotic":  False,
             "🎐 Devine":    True,
             "💦 Wet":       True,
             "🎥 Animation": True
