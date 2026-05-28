@@ -5,11 +5,17 @@ from .block import block_dec,temp_block,block_cbq
 from pyrogram import filters
 from pyrogram.types import InlineKeyboardMarkup as IKM,InlineKeyboardButton as IKB
 
-async def safe_edit(msg,text):
- try:await msg.edit_caption(text)
- except:
-  try:await msg.edit(text)
-  except:pass
+async def safe_edit(msg, text):
+    try:
+        await msg.edit_text(text)
+    except Exception as e1:
+        try:
+            await msg.edit_caption(text)
+        except Exception as e2:
+            try:
+                await msg.reply(text)
+            except:
+                pass
 
 @app.on_message(filters.command("gift"))
 @block_dec
@@ -62,15 +68,15 @@ async def gift(client,message):
       f"{capsify('GIFTS LEFT:')} {gifts_left}")
 
  keyboard=IKM([[IKB("🔎 INLINE",switch_inline_query_current_chat=inline_query)],
-               [IKB("CONFIRM",callback_data=f"con_gift:{sender_id}:{character_id}:{receiver_id}"),
-                IKB("CANCEL",callback_data=f"can_gift:{sender_id}")]])
+               [IKB("✅ CONFIRM",callback_data=f"con_gift:{sender_id}:{character_id}:{receiver_id}"),
+                IKB("❌ CANCEL",callback_data=f"can_gift:{sender_id}")]])
 
- await message.reply(msg,reply_markup=keyboard)
+ await message.reply(msg, reply_markup=keyboard)
 
 
 @app.on_callback_query(filters.regex(r"^(con_gift|can_gift):"))
 @block_cbq
-async def gift_callback(client,query):
+async def gift_callback(client, query):
 
  data=query.data.split(":")
  action=data[0]
@@ -80,7 +86,8 @@ async def gift_callback(client,query):
   await query.answer("This is not for you!",show_alert=True);return
 
  if action=="can_gift":
-  await safe_edit(query.message,capsify("GIFT CANCELED SUCCESSFULLY"))
+  await query.answer("Gift cancelled!", show_alert=False)
+  await safe_edit(query.message, capsify("❌ GIFT CANCELED SUCCESSFULLY"))
   return
 
  if action=="con_gift":
@@ -94,18 +101,24 @@ async def gift_callback(client,query):
   sender=await user_collection.find_one({'id':sender_id})
 
   if not sender:
-   await safe_edit(query.message,capsify("SENDER DATA NOT FOUND"));return
+   await query.answer("Sender data not found!", show_alert=True)
+   await safe_edit(query.message, capsify("❌ SENDER DATA NOT FOUND"))
+   return
 
   character=next((c for c in sender.get('characters',[]) if str(c.get('id'))==str(character_id)),None)
 
   if not character:
-   await safe_edit(query.message,capsify("CHARACTER NOT FOUND"));return
+   await query.answer("Character not found!", show_alert=True)
+   await safe_edit(query.message, capsify("❌ CHARACTER NOT FOUND"))
+   return
 
   # exploit protection
   new_sender_chars=[c for c in sender.get('characters',[]) if str(c['id'])!=str(character_id)]
 
   if len(new_sender_chars)==len(sender.get('characters',[])):
-   await safe_edit(query.message,capsify("CHARACTER ALREADY GIFTED"));return
+   await query.answer("Character already gifted!", show_alert=True)
+   await safe_edit(query.message, capsify("⚠️ CHARACTER ALREADY GIFTED"))
+   return
 
   await user_collection.update_one({'id':sender_id},{'$set':{'characters':new_sender_chars}})
 
@@ -121,11 +134,13 @@ async def gift_callback(client,query):
 
   await user_collection.update_one({'id':sender_id},{'$set':{'daily_gift_count':daily_gift_count}})
 
-  msg=(f"{capsify('🎁 GIFT SENT SUCCESSFULLY')}\n\n"
-       f"{capsify('♦️ NAME:')} {capsify(character['name'])}\n"
-       f"{capsify('🧧 ANIME:')} {capsify(character['anime'])}\n"
-       f"{capsify('🆔:')} {character['id']}\n"
-       f"{capsify('🌟:')} {character.get('rarity','🔮 LIMITED')}\n\n"
-       f"{capsify('GIFTS LEFT:')} {10-daily_gift_count}")
+  success_msg=(f"{capsify('🎁 GIFT SENT SUCCESSFULLY')}\n\n"
+               f"{capsify('♦️ NAME:')} {capsify(character['name'])}\n"
+               f"{capsify('🧧 ANIME:')} {capsify(character['anime'])}\n"
+               f"{capsify('🆔:')} {character['id']}\n"
+               f"{capsify('🌟:')} {character.get('rarity','🔮 LIMITED')}\n\n"
+               f"{capsify('GIFTS LEFT:')} {10-daily_gift_count}")
 
-  await safe_edit(query.message,msg)
+  await query.answer("✅ Gift sent!", show_alert=False)
+  await safe_edit(query.message, success_msg)
+  
