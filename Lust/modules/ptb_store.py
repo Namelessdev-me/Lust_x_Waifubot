@@ -14,16 +14,12 @@ def today():
 
 
 async def get_character(id):
-    """Get character by ID (supports both int and string IDs)"""
-    # First try as string (preserving original format)
     character = await collection.find_one({"id": str(id)})
     if not character:
-        # Try as integer if it can be converted
         try:
             character = await collection.find_one({"id": int(id)})
         except (ValueError, TypeError):
             pass
-    
     if not character:
         raise ValueError(capsify(f"character with id {id} not found."))
     return character
@@ -108,7 +104,9 @@ async def store_handler(_, message):
 @app.on_callback_query(filters.regex(r"^page_"))
 @block_cbq
 async def page_handler(_, query):
-    _, user_id, page = query.data.split("_")
+    # FIX: maxsplit=2 taaki char_id mein _ ho toh bhi sahi split ho
+    parts = query.data.split("_", 2)
+    _, user_id, page = parts
     if int(user_id) != query.from_user.id:
         return await query.answer(capsify("this is not for you, baka!"), show_alert=True)
 
@@ -141,12 +139,16 @@ async def page_handler(_, query):
 @app.on_callback_query(filters.regex(r"^buy_"))
 @block_cbq
 async def buy_handler(_, query):
-    _, user_id, char_index = query.data.split("_")
+    # FIX: maxsplit=2
+    parts = query.data.split("_", 2)
+    _, user_id, char_index = parts
     if int(user_id) != query.from_user.id:
         return await query.answer(capsify("this is not for you, baka!"), show_alert=True)
 
     user_id, char_index = int(user_id), int(char_index)
     session = await get_user_session(user_id)
+    if not session:
+        return await query.answer(capsify("session expired! use /store to refresh."), show_alert=True)
     char_id = session[1][char_index]
 
     try:
@@ -155,7 +157,8 @@ async def buy_handler(_, query):
         return await query.answer(capsify(f"error: {e}"), show_alert=True)
 
     user_balance = await show(user_id)
-    if user_balance < char["price"]:
+    # FIX: None check
+    if user_balance is None or user_balance < char["price"]:
         return await query.answer(capsify("you don't have enough Exlix!"), show_alert=True)
 
     markup = IKM([
@@ -172,12 +175,16 @@ async def buy_handler(_, query):
 @app.on_callback_query(filters.regex(r"^con_"))
 @block_cbq
 async def confirm_handler(_, query):
-    _, user_id, char_id = query.data.split("_")
+
+    parts = query.data.split("_", 2)
+    if len(parts) != 3:
+        return await query.answer(capsify("invalid data."), show_alert=True)
+    _, user_id, char_id = parts
+
     if int(user_id) != query.from_user.id:
         return await query.answer(capsify("this is not for you, baka!"), show_alert=True)
 
-    user_id = int(user_id)  # Only convert user_id to int
-    char_id = char_id  # Keep char_id as string (preserve "022", "02", etc.)
+    user_id = int(user_id)
 
     try:
         char = await get_character(char_id)
@@ -185,7 +192,8 @@ async def confirm_handler(_, query):
         return await query.answer(capsify(f"error: {e}"), show_alert=True)
 
     user_balance = await show(user_id)
-    if user_balance < char["price"]:
+
+    if user_balance is None or user_balance < char["price"]:
         return await query.answer(capsify("you don't have enough Exlix!"), show_alert=True)
 
     bought = await get_user_bought(user_id)
@@ -221,8 +229,11 @@ async def confirm_handler(_, query):
 @app.on_callback_query(filters.regex(r"^clos_"))
 @block_cbq
 async def close_handler(_, query):
-    _, user_id = query.data.split("_")
+
+    parts = query.data.split("_", 1)
+    _, user_id = parts
     if int(user_id) == query.from_user.id:
         await query.message.delete()
     else:
         await query.answer(capsify("this is not for you, baka!"), show_alert=True)
+    
