@@ -1,8 +1,10 @@
 from pyrogram import Client, filters
-from pyrogram.types import InputMediaPhoto
+from pyrogram.types import InputMediaPhoto, InlineKeyboardMarkup, InlineKeyboardButton
 from datetime import datetime, timedelta
 from . import ac, rc, app, user_collection, collection, capsify 
 from .block import block_dec, temp_block
+
+ALLOWED_GROUP_ID = -1003975062619
 
 async def get_claim_time(user_id):
     try:
@@ -26,7 +28,6 @@ async def set_claim_time(user_id, claim_time):
 
 async def get_chars():
     try:
-        # Updated target rarities for the new 1-7 system
         target_rarities = ['⚪ Common', '☘️ Medium', '🔴 Rare', '🟡 Legendary', '🔮 Limited']
         pipeline = [
             {'$match': {'rarity': {'$in': target_rarities}}},
@@ -39,6 +40,15 @@ async def get_chars():
         print(f"Error in get_chars: {e}")
         return []
 
+async def user_joined_allowed_group(user_id):
+    try:
+        member = await app.get_chat_member(ALLOWED_GROUP_ID, user_id)
+        if member.status in ["member", "administrator", "creator"]:
+            return True
+        return False
+    except:
+        return False
+
 @app.on_message(filters.command("hclaim"))
 @block_dec
 async def pslave(client: Client, message):
@@ -47,6 +57,18 @@ async def pslave(client: Client, message):
     user_id = message.from_user.id
 
     if temp_block(user_id):
+        return
+
+
+    if not await user_joined_allowed_group(user_id):
+        buttons = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔗 JOIN GROUP", url="https://t.me/LustXGroups")]
+        ])
+        await message.reply_text(
+            "⚠️ **You need to join our main group to claim your daily slaves!**\n\nPress the button below to join:",
+            reply_markup=buttons,
+            quote=True
+        )
         return
 
     now = datetime.now()
