@@ -7,7 +7,6 @@ from .block import temp_block, block_cbq
 
 
 async def build_myslaves(user_id, page=0):
-    """Build myslaves message + markup for given user_id and page"""
     user = await user_collection.find_one({'id': user_id})
     if not user:
         return None, None, None
@@ -23,21 +22,39 @@ async def build_myslaves(user_id, page=0):
     if page < 0 or page >= total_pages:
         page = 0
 
-    myslaves_message = capsify(f"Collection - Page {page+1}/{total_pages}\n--------------------------------------\n\n")
+    username = user.get('first_name', 'User')
+
+    
     current_characters = unique_characters[page * 7:(page + 1) * 7]
+    grouped = {}
+    for c in current_characters:
+        anime = c.get('anime', 'Unknown')
+        if anime not in grouped:
+            grouped[anime] = []
+        grouped[anime].append(c)
 
-    for character in current_characters:
-        count = character_counts.get(character['id'], 1)
-        myslaves_message += (
-            f"♦️ {capsify(character['name'])} (x{count})\n"
-            f"   Anime: {character.get('anime', '')}\n"
-            f"   ID: {character['id']}\n"
-            f"   {character.get('rarity', '')}\n\n"
-        )
 
-    myslaves_message += "--------------------------------------\n"
-    myslaves_message += capsify(f"Myslaves Mode: {cmode}\n")
-    myslaves_message += capsify(f"Total Characters: {len(unique_characters)}")
+    anime_totals = {}
+    for c in unique_characters:
+        anime = c.get('anime', 'Unknown')
+        anime_totals[anime] = anime_totals.get(anime, 0) + 1
+
+
+    myslaves_message = f"𓆩 {capsify(username)}'s Harem\n"
+    myslaves_message += capsify(f"Total Waifus: {len(unique_characters)}\n")
+    myslaves_message += capsify(f"Page {page+1}/{total_pages}\n")
+
+
+    for anime, chars in grouped.items():
+        anime_count_on_page = len(chars)
+        anime_total = anime_totals.get(anime, 0)
+        myslaves_message += f"\n⌬ {anime} 〔{anime_count_on_page}/{anime_total}〕\n"
+        for character in chars:
+            count = character_counts.get(character['id'], 1)
+            rarity = character.get('rarity', '')
+            char_id = character['id']
+            name = character['name']
+            myslaves_message += f"➥ {rarity} {char_id} {capsify(name)} ×{count}\n"
 
     inline_query = f"collection.{user_id}"
     if cmode != 'All':
@@ -72,7 +89,6 @@ async def build_myslaves(user_id, page=0):
 
     keyboard.append([IKB(capsify("Close"), callback_data=f"myslaves:close_{user_id}")])
     markup = IKM(keyboard)
-
 
     fav_media = None
     fav_type = "photo"
@@ -116,7 +132,6 @@ async def myslaves_cmd(client, message):
 async def myslaves_callback(client, callback_query):
     data = callback_query.data
 
-
     if "close_" in data:
         end_user = int(data.split("close_")[1])
         if end_user == callback_query.from_user.id:
@@ -125,7 +140,6 @@ async def myslaves_callback(client, callback_query):
         else:
             await callback_query.answer(capsify("This is not your Myslaves"), show_alert=True)
         return
-
 
     parts = data.split(":")
     if len(parts) != 3:
@@ -150,4 +164,3 @@ async def myslaves_callback(client, callback_query):
         await callback_query.message.edit_text(text, reply_markup=markup)
     except Exception:
         await callback_query.message.edit_caption(caption=text, reply_markup=markup)
-     
