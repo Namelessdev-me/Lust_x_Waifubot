@@ -56,31 +56,37 @@ async def propose(client, message: Message):
 
     await deduct_balance(user_id, 10)
 
-    proposal_message = capsify("✨ Time to Propose ✨")
-    photo_path = 'https://telegra.ph/file/68491359070e2e045c919.jpg'
-    await message.reply_photo(photo=photo_path, caption=proposal_message)
+    await message.reply_photo(
+        photo='https://files.catbox.moe/jqpeg5.jpg',
+        caption=capsify("💍 You gathered your courage and got down on one knee...")
+    )
 
     await asyncio.sleep(2)
 
-    await message.reply_text(capsify("Asking for Her Hand 💍"))
+    await message.reply_text(capsify("💫 She's thinking... Hold your breath!"))
 
     await asyncio.sleep(2)
 
     if random.random() < 0.6:
-        rejection_message = capsify("She pushed you away and screamed 😂")
-        rejection_photo_path = 'https://graph.org/file/43ac16b34453bafe480d9.jpg'
-        await message.reply_photo(photo=rejection_photo_path, caption=rejection_message)
+        await message.reply_animation(
+            animation='https://files.catbox.moe/kvxr63.gif',
+            caption=capsify("💔 She slapped you .. Better luck next time! 😭")
+        )
     else:
         all_characters = list(await collection.find({}).to_list(length=None))
         valid_characters = [char for char in all_characters if char.get('rarity') in rarity_map.keys()]
 
         if not valid_characters:
             await message.reply_text(capsify("No characters available with the specified rarity."))
+            proposing_users[user_id] = False
             return
 
         character = random.choice(valid_characters)
         await user_collection.update_one({'id': user_id}, {'$push': {'characters': character}})
-        await message.reply_photo(photo=character['img_url'], caption=capsify(f"{character['name']} accepted your proposal!"))
+        await message.reply_photo(
+            photo=character['img_url'],
+            caption=capsify(f"💖 {character['name']} blushed and said Yes! She's yours now~ 🌸")
+        )
 
     last_propose_times[user_id] = datetime.now()
     proposing_users[user_id] = False
