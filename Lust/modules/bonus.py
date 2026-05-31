@@ -1,8 +1,19 @@
+import asyncio
 from datetime import datetime, timedelta
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton as IKB, InlineKeyboardMarkup as IKM
 from . import app, db, capsify, user_collection, add
 from .block import block_dec, temp_block, block_cbq
+
+
+AUTO_DELETE_SECONDS = 120
+
+async def auto_delete(msg, delay=AUTO_DELETE_SECONDS):
+    await asyncio.sleep(delay)
+    try:
+        await msg.delete()
+    except Exception:
+        pass
 
 bonus_db = db.bonus
 
@@ -63,7 +74,8 @@ async def bonus_handler(_, message):
         [IKB("Close 🗑️", callback_data=f"bo_close_{user_id}")]
     ])
 
-    await message.reply_text(caption, reply_markup=markup)
+    sent = await message.reply_text(caption, reply_markup=markup)
+    asyncio.create_task(auto_delete(sent))
 
 @app.on_callback_query(filters.regex(r"^bonus_"))
 @block_cbq

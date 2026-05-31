@@ -1,9 +1,20 @@
+import asyncio
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton as IKB, InlineKeyboardMarkup as IKM, InputMediaPhoto as IMP
 from datetime import datetime as dt
 import random
 from . import app, db, add, deduct, show, collection, user_collection, capsify
 from .block import block_dec, temp_block, block_cbq
+
+
+AUTO_DELETE_SECONDS = 120
+
+async def auto_delete(msg, delay=AUTO_DELETE_SECONDS):
+    await asyncio.sleep(delay)
+    try:
+        await msg.delete()
+    except Exception:
+        pass
 
 sdb = db.new_store
 user_db = db.bought
@@ -95,7 +106,9 @@ async def store_handler(_, message):
     if not session or session[0] != today():
         characters = await get_available_characters()
         if len(characters) < 3:
-            return await message.reply_text(capsify("not enough characters in database!"))
+            sent = await message.reply_text(capsify("not enough characters in database!"))
+            asyncio.create_task(auto_delete(sent))
+            return
         selected_ids = random.sample([c["id"] for c in characters], 3)
         await update_user_session(user_id, [today(), selected_ids])
     else:
@@ -105,7 +118,9 @@ async def store_handler(_, message):
         char = await get_character(selected_ids[0])
         img, caption = await format_character_info(char)
     except ValueError as e:
-        return await message.reply_text(capsify(f"error: {e}"))
+        sent = await message.reply_text(capsify(f"error: {e}"))
+        asyncio.create_task(auto_delete(sent))
+        return
 
     markup = IKM([
         [
@@ -116,7 +131,8 @@ async def store_handler(_, message):
         [IKB(capsify("Close 🗑️"), callback_data=f"clos_{user_id}")]
     ])
 
-    await message.reply_photo(img, caption=capsify(f"**Page 1/3**\n\n{caption}"), reply_markup=markup)
+    sent = await message.reply_photo(img, caption=capsify(f"**Page 1/3**\n\n{caption}"), reply_markup=markup)
+    asyncio.create_task(auto_delete(sent))
 
 
 @app.on_callback_query(filters.regex(r"^page_"))

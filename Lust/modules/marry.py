@@ -7,6 +7,15 @@ from .block import block_dec, temp_block
 from datetime import datetime
 
 cooldown_collection = db.cooldowns
+AUTO_DELETE_SECONDS = 120  # 2 minutes
+
+async def auto_delete(msg, delay=AUTO_DELETE_SECONDS):
+    """Delete a message after `delay` seconds."""
+    await asyncio.sleep(delay)
+    try:
+        await msg.delete()
+    except Exception:
+        pass
 
 async def get_cooldown_from_db(user_id):
     try:
@@ -55,11 +64,12 @@ async def send_error_report(client, message, error_message):
         f"{capsify('Error')}: {error_message}\n"
         f"{capsify('Please report this issue')}: @LustXGroups"
     )
-    await client.send_message(
+    sent = await client.send_message(
         chat_id=message.chat.id,
         text=report_message,
         reply_to_message_id=message.id
     )
+    asyncio.create_task(auto_delete(sent))
 
 async def handle_marriage(client, message, receiver_id):
     try:
@@ -78,12 +88,13 @@ async def handle_marriage(client, message, receiver_id):
                 f"Rarity: {character['rarity']}\n"
                 f"Anime: {character['anime']}\n"
             )
-            await client.send_photo(
+            sent = await client.send_photo(
                 chat_id=message.chat.id,
                 photo=character['img_url'],
                 caption=caption,
                 reply_to_message_id=message.id
             )
+            asyncio.create_task(auto_delete(sent))
 
     except Exception as e:
         await send_error_report(client, message, str(e))
@@ -92,6 +103,7 @@ async def handle_dice(client, message, receiver_id):
     try:
         dice_message = await client.send_dice(chat_id=message.chat.id)
         value = int(dice_message.dice.value)
+        asyncio.create_task(auto_delete(dice_message))
 
         if value in [1, 6]:
             unique_characters = await get_unique_characters(receiver_id)
@@ -110,18 +122,20 @@ async def handle_dice(client, message, receiver_id):
                     f"Rarity: {character['rarity']}\n"
                     f"Anime: {character['anime']}\n"
                 )
-                await client.send_photo(
+                sent = await client.send_photo(
                     chat_id=message.chat.id,
                     photo=character['img_url'],
                     caption=caption,
                     reply_to_message_id=message.id
                 )
+                asyncio.create_task(auto_delete(sent))
         else:
-            await client.send_message(
+            sent = await client.send_message(
                 chat_id=message.chat.id,
                 text=f"{message.from_user.first_name}, {capsify('your marriage proposal was rejected she walk away s')}! 🤧",
                 reply_to_message_id=message.id
             )
+            asyncio.create_task(auto_delete(sent))
 
     except Exception as e:
         await send_error_report(client, message, str(e))
@@ -142,21 +156,23 @@ async def dice_command(client, message):
         if cooldown_time < 45:
             remaining_time = int(45 - cooldown_time)
 
-            await client.send_message(
+            sent = await client.send_message(
                 chat_id=message.chat.id,
                 text=capsify(f"Please wait {remaining_time} seconds before rolling again."),
                 reply_to_message_id=message.id
             )
+            asyncio.create_task(auto_delete(sent))
             return
 
     await update_cooldown_in_db(user_id)
 
     if user_id == 7162166061:
-        await client.send_message(
+        sent = await client.send_message(
             chat_id=message.chat.id,
             text=capsify("You are banned from using this command."),
             reply_to_message_id=message.id
         )
+        asyncio.create_task(auto_delete(sent))
         return
 
     receiver_id = message.from_user.id

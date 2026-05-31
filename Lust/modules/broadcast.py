@@ -1,4 +1,4 @@
-"""import random
+import random
 import asyncio
 from pyrogram import filters
 from pyrogram.errors import PeerIdInvalid, FloodWait
@@ -82,5 +82,5 @@ async def broadcast(_, message):
 
     await message.reply_text(capsify(f"✅ Broadcast completed!\n"
                                      f"Success: {success_count}\n"
-                                     f"Failures: {fail_count}")"""
+                                     f"Failures: {fail_count}")
 

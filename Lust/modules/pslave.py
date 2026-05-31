@@ -1,8 +1,18 @@
+import asyncio
 from pyrogram import Client, filters
 from pyrogram.types import InputMediaPhoto, InlineKeyboardMarkup, InlineKeyboardButton
 from datetime import datetime, timedelta
-from . import ac, rc, app, user_collection, collection, capsify 
+from . import ac, rc, app, user_collection, collection, capsify
 from .block import block_dec, temp_block
+
+AUTO_DELETE_SECONDS = 120
+
+async def auto_delete(msg, delay=AUTO_DELETE_SECONDS):
+    await asyncio.sleep(delay)
+    try:
+        await msg.delete()
+    except Exception:
+        pass
 
 MAIN_GC_ID = -1003975062619
 MAIN_GC_LINK = "https://t.me/LustXGroups"
@@ -31,7 +41,7 @@ async def get_chars():
     try:
         target_rarities = ['⚪ Common', '☘️ Medium', '🔴 Rare', '🟡 Legendary', '🔮 Limited']
         pipeline = [
-            {'$match': {'rarity': {'$in': target_rarities}}}, 
+            {'$match': {'rarity': {'$in': target_rarities}}},
             {'$sample': {'size': 1}}
         ]
         cursor = collection.aggregate(pipeline)
@@ -51,15 +61,15 @@ async def pslave(client: Client, message):
     if temp_block(user_id):
         return
 
-    # Sirf main GC mein allow karo
     if chat_id != MAIN_GC_ID:
-        await message.reply_text(
+        sent = await message.reply_text(
             capsify("❌ hclaim command only works in our main group!"),
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("✨ Join Main GC", url=MAIN_GC_LINK)]
             ]),
             quote=True
         )
+        asyncio.create_task(auto_delete(sent))
         return
 
     now = datetime.now()
@@ -72,14 +82,16 @@ async def pslave(client: Client, message):
             hours, remainder = divmod(remaining_time.seconds, 3600)
             minutes, _ = divmod(remainder, 60)
             formatted_time = f"{hours:02}:{minutes:02}"
-            await message.reply_text(capsify(f"Please wait for `after {formatted_time}` to claim your next slave."), quote=True)
+            sent = await message.reply_text(capsify(f"Please wait for `after {formatted_time}` to claim your next slave."), quote=True)
+            asyncio.create_task(auto_delete(sent))
             return
 
     await set_claim_time(user_id, now)
 
     chars = await get_chars()
     if not chars:
-        await message.reply_text(capsify("No new slaves available to claim."), quote=True)
+        sent = await message.reply_text(capsify("No new slaves available to claim."), quote=True)
+        asyncio.create_task(auto_delete(sent))
         return
 
     try:
@@ -95,8 +107,10 @@ async def pslave(client: Client, message):
             for char in chars
         ]
         media_group = [InputMediaPhoto(media=img_url, caption=caption) for img_url, caption in zip(img_urls, captions)]
-        await message.reply_media_group(media_group)
+        sent_msgs = await message.reply_media_group(media_group)
+        for m in sent_msgs:
+            asyncio.create_task(auto_delete(m))
     except Exception as e:
         print(f"Error in pslave: {e}")
-        await message.reply_text(capsify("An error occurred while processing your request."), quote=True)
-        
+        sent = await message.reply_text(capsify("An error occurred while processing your request."), quote=True)
+        asyncio.create_task(auto_delete(sent))

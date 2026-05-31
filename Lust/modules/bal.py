@@ -1,24 +1,35 @@
+import asyncio
 from pyrogram import Client, filters
 from pyrogram.types import Message
 from . import Lusts as app, user_collection, show, sbank, capsify
 from datetime import datetime
 from .block import block_dec, temp_block
 
+AUTO_DELETE_SECONDS = 120
+
+async def auto_delete(msg, delay=AUTO_DELETE_SECONDS):
+    await asyncio.sleep(delay)
+    try:
+        await msg.delete()
+    except Exception:
+        pass
+
 @app.on_message(filters.command("bal"))
 @block_dec
 async def balance(client: Client, message: Message):
     if not message.from_user:
-        await message.reply_text(capsify("COULDN'T RETRIEVE USER INFORMATION."))
+        sent = await message.reply_text(capsify("COULDN'T RETRIEVE USER INFORMATION."))
+        asyncio.create_task(auto_delete(sent))
         return
 
     user_id = message.from_user.id
     username = message.from_user.first_name or "None"
-    
+
     if temp_block(user_id):
         return
-    
+
     user_data = await user_collection.find_one(
-        {'id': user_id}, 
+        {'id': user_id},
         projection={'balance': 1, 'saved_amount': 1, 'loan_amount': 1}
     )
 
@@ -28,11 +39,9 @@ async def balance(client: Client, message: Message):
         bb = await sbank(user_id)
         saved_amount = int(bb)
         loan_amount = user_data.get('loan_amount', 0)
-        
-        # Calculate total worth
+
         total_worth = balance_amount + saved_amount
 
-        # Create the formatted message
         caption = "✦━═❖ ᴇʟɪxɪʀ ᴀᴄᴄᴏᴜɴᴛ ❖═━✦\n"
         caption += "╭────────────────────╮\n"
         caption += f"• ɴᴀᴍᴇ     : {username}\n"
@@ -44,9 +53,9 @@ async def balance(client: Client, message: Message):
         caption += "╰────────────────────╯\n"
         caption += "✦━═❖ ᴇɴᴊᴏʏ ʏᴏᴜʀ ʜᴜɴᴛ ❖═━✦"
 
-        await message.reply_text(caption)
+        sent = await message.reply_text(caption)
+        asyncio.create_task(auto_delete(sent))
     else:
-        # Create error message
         error_caption = "✦━═❖ ᴇʟɪxɪʀ ᴀᴄᴄᴏᴜɴᴛ ❖═━✦\n"
         error_caption += "╭────────────────────╮\n"
         error_caption += f"• ɴᴀᴍᴇ     : {username}\n"
@@ -56,4 +65,5 @@ async def balance(client: Client, message: Message):
         error_caption += "✦━═❖ ʀᴇɢɪsᴛᴇʀ ɪɴ ʙᴏᴛ ᴅᴍ ❖═━✦\n\n"
         error_caption += "ᴘʟᴇᴀsᴇ sᴛᴀʀᴛ ᴛʜᴇ ʙᴏᴛ ɪɴ ᴅᴍ ᴛᴏ ʀᴇɢɪsᴛᴇʀ."
 
-        await message.reply_text(error_caption)
+        sent = await message.reply_text(error_caption)
+        asyncio.create_task(auto_delete(sent))

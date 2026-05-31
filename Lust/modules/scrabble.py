@@ -8,6 +8,15 @@ from . import collection, user_collection, app, capsify, nopvt, add
 from .watchers import scrabble_watcher
 from .block import block_dec, temp_block
 
+AUTO_DELETE_SECONDS = 120
+
+async def auto_delete(msg, delay=AUTO_DELETE_SECONDS):
+    await asyncio.sleep(delay)
+    try:
+        await msg.delete()
+    except Exception:
+        pass
+
 active_scrabbles = {}
 MAX_ATTEMPTS = 5
 WIN_LIMIT = 3
@@ -34,17 +43,14 @@ def is_new_day(last_win_time):
     return now_ist.date() != last_win_ist.date()
 
 async def get_random_character():
-    
     all_characters = await collection.find({
         'id': {'$gte': '01', '$lte': '1100'}
     }).to_list(length=None)
-
 
     enabled_characters = [
         c for c in all_characters
         if SCRABBLE_RARITY_ENABLED.get(c.get('rarity', ''), True)
     ]
-
 
     pool = enabled_characters if enabled_characters else all_characters
 
@@ -80,11 +86,13 @@ async def scrabble(client, message: Message):
     if user_id in cooldown_users:
         remaining_time = COOLDOWN_TIME - (datetime.now() - cooldown_users[user_id]).total_seconds()
         remaining_time = max(remaining_time, 0)
-        await message.reply_text(capsify(f"Please wait {int(remaining_time)} seconds before starting a new game."))
+        sent = await message.reply_text(capsify(f"Please wait {int(remaining_time)} seconds before starting a new game."))
+        asyncio.create_task(auto_delete(sent))
         return
 
     if user_id in active_scrabbles:
-        await message.reply_text(capsify("You already have an active scrabble. Please wait for it to finish."))
+        sent = await message.reply_text(capsify("You already have an active scrabble. Please wait for it to finish."))
+        asyncio.create_task(auto_delete(sent))
         return
 
     character = await get_random_character()
@@ -99,13 +107,14 @@ async def scrabble(client, message: Message):
         'attempts': 0
     }
 
-    await message.reply_text(
+    sent = await message.reply_text(
         f"{capsify('Welcome to Word Scramble!')}\n\n"
         f"Can you unscramble this word? Try it out:\n\n"
         f"{scrambled_word}\n\n"
         f"⏳ You have {MAX_ATTEMPTS} attempts to respond.\n"
         f"⏳ Use /xscrabble to terminate the game."
     )
+    asyncio.create_task(auto_delete(sent))
 
 @app.on_message(~filters.me, group=scrabble_watcher)
 async def check_answer(client, message: Message):
@@ -145,19 +154,23 @@ async def check_answer(client, message: Message):
 
         if user_data['wins'] <= WIN_LIMIT:
             try:
-                await message.reply_photo(
+                sent = await message.reply_photo(
                     photo=scrabble_data['character']['img_url'],
                     caption=capsify(f"{scrabble_data['character']['name']} added to your collection! 🎉")
                 )
+                asyncio.create_task(auto_delete(sent))
             except Exception:
-                await message.reply_text(capsify(f"{scrabble_data['character']['name']} added to your collection! 🎉"))
-            
+                sent = await message.reply_text(capsify(f"{scrabble_data['character']['name']} added to your collection! 🎉"))
+                asyncio.create_task(auto_delete(sent))
+
             await user_collection.update_one({'id': user_id}, {'$push': {'characters': scrabble_data['character']}})
             if user_data['wins'] == WIN_LIMIT:
-                await message.reply_text(capsify("🎉 You won 3 games today! Now you will get Exlix instead of characters. 🪙"))
+                sent = await message.reply_text(capsify("🎉 You won 3 games today! Now you will get Exlix instead of characters. 🪙"))
+                asyncio.create_task(auto_delete(sent))
         else:
             exlix = random.randint(15000, 20000)
-            await message.reply_text(capsify(f"💰 You've won {exlix} Exlix! 💰"))
+            sent = await message.reply_text(capsify(f"💰 You've won {exlix} Exlix! 💰"))
+            asyncio.create_task(auto_delete(sent))
             await add(user_id, exlix)
 
         del active_scrabbles[user_id]
@@ -166,18 +179,20 @@ async def check_answer(client, message: Message):
         asyncio.create_task(remove_cooldown(user_id))
 
     elif scrabble_data['attempts'] >= MAX_ATTEMPTS:
-        await message.reply_text(
+        sent = await message.reply_text(
             capsify(f"❌ Out of attempts! ❌\nCorrect answer was: {scrabble_data['word']}")
         )
+        asyncio.create_task(auto_delete(sent))
         del active_scrabbles[user_id]
     else:
         hint = provide_hint(scrabble_data['word'], scrabble_data['attempts'])
-        await message.reply_text(
+        sent = await message.reply_text(
             capsify(f"❌ Incorrect Answer! ❌\n\n"
             f"Scrambled word: {scrabble_data['scrambled_word']}\n\n"
             f"Hint: {hint}\n\n"
             f"Try again! 🔄")
         )
+        asyncio.create_task(auto_delete(sent))
 
 async def remove_cooldown(user_id):
     await asyncio.sleep(COOLDOWN_TIME)
@@ -187,11 +202,11 @@ async def remove_cooldown(user_id):
 @app.on_message(filters.command("xscrabble"))
 async def xscrabble(client, message: Message):
     user_id = message.from_user.id
-    chat_id = message.chat.id
 
     if user_id in active_scrabbles:
         del active_scrabbles[user_id]
-        await message.reply_text(capsify("Your current game has been terminated."))
+        sent = await message.reply_text(capsify("Your current game has been terminated."))
+        asyncio.create_task(auto_delete(sent))
     else:
-        await message.reply_text(capsify("You don't have an active game to terminate."))
-    
+        sent = await message.reply_text(capsify("You don't have an active game to terminate."))
+        asyncio.create_task(auto_delete(sent))

@@ -5,6 +5,16 @@ from pyrogram.types import InlineKeyboardButton as IKB, InlineKeyboardMarkup as 
 from . import user_collection, app, capsify
 from .block import block_dec, block_cbq, temp_block
 
+AUTO_DELETE_SECONDS = 120  # 2 minutes
+
+async def auto_delete(msg, delay=AUTO_DELETE_SECONDS):
+    """Delete a message after `delay` seconds."""
+    await asyncio.sleep(delay)
+    try:
+        await msg.delete()
+    except Exception:
+        pass
+
 @app.on_message(filters.command("fav"))
 @block_dec
 async def fav(client: Client, message: Message):
@@ -13,18 +23,21 @@ async def fav(client: Client, message: Message):
         return
 
     if len(message.command) < 2:
-        await message.reply_text(capsify('Please provide Slave ID...'))
+        sent = await message.reply_text(capsify('Please provide Slave ID...'))
+        asyncio.create_task(auto_delete(sent))
         return
 
     character_id = message.command[1]
     user = await user_collection.find_one({'id': user_id})
     if not user:
-        await message.reply_text(capsify('You have not got any Slave yet...'))
+        sent = await message.reply_text(capsify('You have not got any Slave yet...'))
+        asyncio.create_task(auto_delete(sent))
         return
 
     character = next((c for c in user['characters'] if c['id'] == character_id), None)
     if not character:
-        await message.reply_text(capsify('This slave is not in your list'))
+        sent = await message.reply_text(capsify('This slave is not in your list'))
+        asyncio.create_task(auto_delete(sent))
         return
 
     if message.chat.id == -1002225496870:
@@ -39,7 +52,8 @@ async def fav(client: Client, message: Message):
                 ]
             ]
         )
-        await message.reply_text(capsify(f'Do you want to make {character["name"]} your favorite slave?'), reply_markup=keyboard)
+        sent = await message.reply_text(capsify(f'Do you want to make {character["name"]} your favorite slave?'), reply_markup=keyboard)
+        asyncio.create_task(auto_delete(sent))
 
 async def handle_confirmation(user_id, character_id, character=None):
     if character:
@@ -47,9 +61,11 @@ async def handle_confirmation(user_id, character_id, character=None):
         if user:
             user['favorites'] = [character_id]
             await user_collection.update_one({'id': user_id}, {'$set': {'favorites': user['favorites']}})
-            await app.send_message(user_id, capsify(f'Slave {character["name"]} is your favorite now...'))
+            sent = await app.send_message(user_id, capsify(f'Slave {character["name"]} is your favorite now...'))
+            asyncio.create_task(auto_delete(sent))
     else:
-        await app.send_message(user_id, capsify('You have not got any slave yet...'))
+        sent = await app.send_message(user_id, capsify('You have not got any slave yet...'))
+        asyncio.create_task(auto_delete(sent))
 
 @app.on_callback_query(filters.regex(r'^(confirm_|cancel_)'))
 @block_cbq

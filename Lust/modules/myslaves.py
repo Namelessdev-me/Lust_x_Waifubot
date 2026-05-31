@@ -1,9 +1,20 @@
+import asyncio
 import math
 from itertools import groupby
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton as IKB, InlineKeyboardMarkup as IKM
 from . import user_collection, capsify, app
 from .block import temp_block, block_cbq
+
+AUTO_DELETE_SECONDS = 120  # 2 minutes
+
+async def auto_delete(msg, delay=AUTO_DELETE_SECONDS):
+    """Delete a message after `delay` seconds."""
+    await asyncio.sleep(delay)
+    try:
+        await msg.delete()
+    except Exception:
+        pass
 
 
 async def build_myslaves(user_id, page=0):
@@ -105,21 +116,24 @@ async def myslaves_cmd(client, message):
 
     text, markup, media_info = await build_myslaves(user_id, 0)
     if not text:
-        await message.reply_text(capsify("You have not grabbed any slaves yet..."))
+        sent = await message.reply_text(capsify("You have not grabbed any slaves yet..."))
+        asyncio.create_task(auto_delete(sent))
         return
 
     fav_media, fav_type = media_info
     if fav_media:
         try:
             if fav_type == "video":
-                await app.send_video(message.chat.id, video=fav_media, caption=text, reply_markup=markup, reply_to_message_id=message.id)
+                sent = await app.send_video(message.chat.id, video=fav_media, caption=text, reply_markup=markup, reply_to_message_id=message.id)
             else:
-                await app.send_photo(message.chat.id, photo=fav_media, caption=text, reply_markup=markup, reply_to_message_id=message.id)
+                sent = await app.send_photo(message.chat.id, photo=fav_media, caption=text, reply_markup=markup, reply_to_message_id=message.id)
+            asyncio.create_task(auto_delete(sent))
             return
         except Exception:
             pass
 
-    await message.reply_text(text, reply_markup=markup)
+    sent = await message.reply_text(text, reply_markup=markup)
+    asyncio.create_task(auto_delete(sent))
 
 
 @app.on_callback_query(filters.regex(r"^myslaves:"))

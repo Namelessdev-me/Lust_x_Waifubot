@@ -6,6 +6,16 @@ from . import collection, user_collection, group_user_totals_collection, top_glo
 from asyncio import Lock
 from .watchers import character_watcher
 
+AUTO_DELETE_SECONDS = 120  # 2 minutes
+
+async def auto_delete(msg, delay=AUTO_DELETE_SECONDS):
+    """Delete a message after `delay` seconds."""
+    await asyncio.sleep(delay)
+    try:
+        await msg.delete()
+    except Exception:
+        pass
+
 message_counts = {}
 spawn_locks = {}
 spawned_characters = {}
@@ -60,7 +70,6 @@ async def spawn_character(chat_id):
            10: "🎥 Animation"
         }
 
-        
         rarity_enabled = {
             "⚪ Common":    True,
             "☘️ Medium":   True,
@@ -87,7 +96,6 @@ async def spawn_character(chat_id):
             "🎥 Animation": 0.1
         }
 
-
         active_weights = {r: w for r, w in rarity_weights.items() if rarity_enabled.get(r, True)}
 
         all_characters = await collection.find({}).to_list(length=None)
@@ -95,11 +103,9 @@ async def spawn_character(chat_id):
         if not all_characters:
             return False
 
-
         valid_characters = [c for c in all_characters if c.get('rarity') in active_weights]
 
         if not valid_characters:
-            # Fallback: agar koi bhi enabled rarity ka character na mile toh sab use karo
             valid_characters = all_characters
 
         weights = [active_weights.get(c.get('rarity', ''), 1.0) for c in valid_characters]
@@ -118,7 +124,7 @@ async def spawn_character(chat_id):
         markup = InlineKeyboardMarkup(keyboard)
 
         if character.get("type") == "video":
-            await app.send_video(
+            sent = await app.send_video(
                 chat_id=chat_id,
                 video=character['img_url'],
                 caption=caption,
@@ -126,13 +132,16 @@ async def spawn_character(chat_id):
                 has_spoiler=True
             )
         else:
-            await app.send_photo(
+            sent = await app.send_photo(
                 chat_id=chat_id,
                 photo=character['img_url'],
                 caption=caption,
                 reply_markup=markup,
                 has_spoiler=True
             )
+
+        # Auto-delete spawn message after 2 minutes
+        asyncio.create_task(auto_delete(sent))
 
         asyncio.create_task(remove_spawn_after_timeout(chat_id, character, timeout=300))
 
@@ -155,19 +164,22 @@ async def remove_spawn_after_timeout(chat_id, character, timeout):
         )
 
         if character.get("type") == "video":
-            await app.send_video(
+            sent = await app.send_video(
                 chat_id,
                 video=character['img_url'],
                 caption=caption,
                 reply_markup=InlineKeyboardMarkup(keyboard)
             )
         else:
-            await app.send_photo(
+            sent = await app.send_photo(
                 chat_id,
                 photo=character['img_url'],
                 caption=caption,
                 reply_markup=InlineKeyboardMarkup(keyboard)
             )
+
+        # Auto-delete timeout reveal message after 2 minutes
+        asyncio.create_task(auto_delete(sent))
 
         del spawned_characters[chat_id]
 
@@ -186,13 +198,15 @@ async def guess(_, message):
         args = message.text.split(maxsplit=1)[1] if len(message.text.split()) > 1 else None
 
         if not args or "()" in args or "&" in args:
-            await message.reply_text(capsify("❌ INVALID INPUT."))
+            sent = await message.reply_text(capsify("❌ INVALID INPUT."))
+            asyncio.create_task(auto_delete(sent))
             return
 
         guess = args.strip().lower()
 
         if chat_id not in spawned_characters:
-            await message.reply_text(capsify("❌ NO CHARACTER HAS SPAWNED YET."))
+            sent = await message.reply_text(capsify("❌ NO CHARACTER HAS SPAWNED YET."))
+            asyncio.create_task(auto_delete(sent))
             return
 
         character = spawned_characters[chat_id]
@@ -201,9 +215,10 @@ async def guess(_, message):
         name_parts = character_name.split()
 
         if guess not in name_parts:
-            await message.reply_text(
+            sent = await message.reply_text(
                 capsify(f"❌ INCORRECT NAME. '{guess.upper()}' DOES NOT MATCH.")
             )
+            asyncio.create_task(auto_delete(sent))
             return
 
         user_data = await user_collection.find_one({'id': user_id})
@@ -240,10 +255,11 @@ async def guess(_, message):
             f"🕊️ CHARACTER ADDED TO YOUR COLLECTION!"
         )
 
-        await message.reply_text(
+        sent = await message.reply_text(
             success_message,
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
+        asyncio.create_task(auto_delete(sent))
 
         del spawned_characters[chat_id]
 
@@ -306,4 +322,3 @@ async def handle_count_button(_, callback_query):
         capsify(f"YOU HAVE {count} OF THIS CHARACTER."),
         show_alert=True
         )
-        

@@ -7,6 +7,15 @@ from pytz import timezone
 from . import add, capsify, sudo_filter, guess_watcher, nopvt, app, collection, limit, user_collection
 from .block import block_dec
 
+AUTO_DELETE_SECONDS = 120
+
+async def auto_delete(msg, delay=AUTO_DELETE_SECONDS):
+    await asyncio.sleep(delay)
+    try:
+        await msg.delete()
+    except Exception:
+        pass
+
 active_guesses = {}
 COOLDOWN_TIME = 30
 cooldown_users = {}
@@ -22,7 +31,8 @@ async def guess(client, message: Message):
     chat_id = message.chat.id
 
     if chat_id in active_guesses:
-        await message.reply_text(capsify("A guessing game is already running in this chat!"))
+        sent = await message.reply_text(capsify("A guessing game is already running in this chat!"))
+        asyncio.create_task(auto_delete(sent))
         return
 
     character = await get_random_character()
@@ -31,13 +41,14 @@ async def guess(client, message: Message):
         'character': character,
         'start_time': datetime.now(),
         'guessed': False,
-        'message_id': message.id  
+        'message_id': message.id
     }
 
-    await message.reply_photo(
+    sent = await message.reply_photo(
         photo=character['img_url'],
         caption=capsify("Guess the character's name! First one to guess correctly wins 5000-10000 Exlix!")
     )
+    asyncio.create_task(auto_delete(sent))
 
     asyncio.create_task(check_timeout(client, message, chat_id))
 
@@ -77,9 +88,10 @@ async def check_guess(client, message: Message):
 
         await add(user_id, reward)
 
-        await message.reply_text(
+        sent = await message.reply_text(
             capsify(f"Congratulations {message.from_user.first_name}! 🎉 You guessed correctly and won {reward} Exlix!")
         )
+        asyncio.create_task(auto_delete(sent))
 
         del active_guesses[chat_id]
 
@@ -97,9 +109,11 @@ async def xguess(client, message: Message):
 
     if chat_id in active_guesses:
         del active_guesses[chat_id]
-        await message.reply_text(capsify("The current guessing game has been terminated."))
+        sent = await message.reply_text(capsify("The current guessing game has been terminated."))
+        asyncio.create_task(auto_delete(sent))
     else:
-        await message.reply_text(capsify("There is no active guessing game to terminate."))
+        sent = await message.reply_text(capsify("There is no active guessing game to terminate."))
+        asyncio.create_task(auto_delete(sent))
 
 async def check_timeout(client, message: Message, chat_id):
     await asyncio.sleep(GUESS_TIMEOUT)
@@ -108,10 +122,11 @@ async def check_timeout(client, message: Message, chat_id):
         character = active_guesses[chat_id]['character']
         original_message_id = active_guesses[chat_id]['message_id']
 
-        await message.reply_text(
+        sent = await message.reply_text(
             capsify(f"Time out! ⌛ The correct name was: {character['name']}"),
-            reply_to_message_id=original_message_id  
+            reply_to_message_id=original_message_id
         )
+        asyncio.create_task(auto_delete(sent))
         del active_guesses[chat_id]
 
 async def remove_cooldown(user_id):
