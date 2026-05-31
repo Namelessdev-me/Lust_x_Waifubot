@@ -6,6 +6,52 @@ from .block import block_dec_ptb
 import asyncio
 
 
+def build_caption(character, global_count):
+    rarity = character.get('rarity', "Unknown")
+    price = character.get('price', "Unknown")
+    category = character.get('category', "None")
+
+    caption = f"""
+╒═══「 ᴄʜᴀʀᴀᴄᴛᴇʀ ᴘʀᴏꜰɪʟᴇ 」═══╕
+│
+╰─➤ 𝗡𝗔𝗠𝗘   ›  {character['name']}
+╰─➤ 𝗜𝗗     ›  {character['id']}
+╰─➤ 𝗔𝗡𝗜𝗠𝗘  ›  {character['anime']}
+╰─➤ 𝗧𝗬𝗣𝗘   ›  {category}
+╰─➤ 𝗥𝗔𝗥𝗜𝗧𝗬 ›  {rarity}
+╰─➤ 𝗣𝗥𝗜𝗖𝗘  ›  {price} 𝗘𝘅𝗹𝗶𝘅
+╰─➤ 𝗢𝗪𝗡𝗘𝗗  ›  {global_count} 𝗨𝘀𝗲𝗿𝘀
+│
+╘═══────────────────────═══╛"""
+    return caption
+
+
+def build_top_caption(top_users, character_name):
+    lines = [
+        f"╒═══「 𝗧𝗢𝗣 𝗛𝗢𝗟𝗗𝗘𝗥𝗦 」═══╕",
+        f"│  ᴄʜᴀʀ › {character_name}",
+        f"╞═══────────────────────═══╡"
+    ]
+    medals = ["🥇", "🥈", "🥉"]
+    for i, user in enumerate(top_users, 1):
+        name = user.get('first_name', 'Unknown')
+        username = user.get('username')
+        count = user.get('count', 0)
+        display = f"@{username}" if username else name
+        medal = medals[i - 1] if i <= 3 else f"{i}."
+        lines.append(f"╰─➤ {medal}  {display}  ›  {count}ˣ")
+    lines.append("╘═══────────────────────═══╛")
+    return "\n".join(lines)
+
+
+async def auto_delete(message, delay: int):
+    await asyncio.sleep(delay)
+    try:
+        await message.delete()
+    except Exception:
+        pass
+
+
 @block_dec_ptb
 async def details(update: Update, context: CallbackContext) -> None:
     try:
@@ -22,23 +68,8 @@ async def details(update: Update, context: CallbackContext) -> None:
         return
 
     global_count = await user_collection.count_documents({'characters.id': character['id']})
-
-    rarity = character.get('rarity', "Unknown")
-    price = character.get('price', "Unknown")
-    category = character.get('category', "None")
     char_type = character.get("type", "photo")
-
-    caption = f"""
-╒═══「 𝗖𝗛𝗔𝗥𝗔𝗖𝗧𝗘𝗥 𝗜𝗡𝗙𝗢 」
-╰─➩ ɴᴀᴍᴇ: {character['name']}
-╰─➩ ɪᴅ: {character['id']}
-╰─➩ ᴀɴɪᴍᴇ: {character['anime']}
-╰─➩ ᴄᴀᴛᴇɢᴏʀʏ: {category}
-╰─➩ ʀᴀʀɪᴛʏ: {rarity}
-╰─➩ ᴘʀɪᴄᴇ: {price} Exlix
-╰─➩ ᴏᴡɴᴇᴅ ʙʏ: {global_count} Users
-╰──────────────────
-"""
+    caption = build_caption(character, global_count)
 
     keyboard = [
         [IKB("Who Has It 👥", callback_data=f"top_{character_id}")]
@@ -60,16 +91,7 @@ async def details(update: Update, context: CallbackContext) -> None:
             reply_markup=reply_markup
         )
 
-
     asyncio.create_task(auto_delete(sent, 120))
-
-
-async def auto_delete(message, delay: int):
-    await asyncio.sleep(delay)
-    try:
-        await message.delete()
-    except Exception:
-        pass
 
 
 async def top_holders(update: Update, context: CallbackContext) -> None:
@@ -77,9 +99,12 @@ async def top_holders(update: Update, context: CallbackContext) -> None:
     await query.answer()
 
     data = query.data
-    parts = data.split('_')
-    character_id = parts[-1]
+    character_id = data.split('_', 1)[1]
 
+    character = await collection.find_one({'id': character_id})
+    if not character:
+        await query.answer(capsify("Character not found."), show_alert=True)
+        return
 
     pipeline = [
         {"$match": {"characters.id": character_id}},
@@ -105,22 +130,16 @@ async def top_holders(update: Update, context: CallbackContext) -> None:
 
     if not top_users:
         text = capsify("No one owns this character yet.")
-    else:
-        lines = [capsify("🏆 Top 10 Holders\n")]
-        for i, user in enumerate(top_users, 1):
-            name = user.get('first_name', 'Unknown')
-            username = user.get('username')
-            count = user.get('count', 0)
-            if username:
-                display = f"@{username}"
-            else:
-                display = name
-            lines.append(f"{i}. {display} — {count}x")
-        text = capsify("\n".join(lines))
+        keyboard = [[IKB("⬅️ Back", callback_data=f"back_{character_id}")]]
+        await query.edit_message_caption(
+            caption=text,
+            parse_mode='HTML',
+            reply_markup=IKM(keyboard)
+        )
+        return
 
-    keyboard = [
-        [IKB("⬅️ Back", callback_data=f"back_{character_id}")]
-    ]
+    text = capsify(build_top_caption(top_users, character.get('name', '')))
+    keyboard = [[IKB("⬅️ Back", callback_data=f"back_{character_id}")]]
     reply_markup = IKM(keyboard)
 
     await query.edit_message_caption(
@@ -135,8 +154,7 @@ async def back_to_details(update: Update, context: CallbackContext) -> None:
     await query.answer()
 
     data = query.data
-    parts = data.split('_')
-    character_id = parts[-1]
+    character_id = data.split('_', 1)[1]
 
     character = await collection.find_one({'id': character_id})
 
@@ -145,22 +163,7 @@ async def back_to_details(update: Update, context: CallbackContext) -> None:
         return
 
     global_count = await user_collection.count_documents({'characters.id': character['id']})
-
-    rarity = character.get('rarity', "Unknown")
-    price = character.get('price', "Unknown")
-    category = character.get('category', "None")
-
-    caption = f"""
-╒═══「 𝗖𝗛𝗔𝗥𝗔𝗖𝗧𝗘𝗥 𝗜𝗡𝗙𝗢 」
-╰─➩ ɴᴀᴍᴇ: {character['name']}
-╰─➩ ɪᴅ: {character['id']}
-╰─➩ ᴀɴɪᴍᴇ: {character['anime']}
-╰─➩ ᴄᴀᴛᴇɢᴏʀʏ: {category}
-╰─➩ ʀᴀʀɪᴛʏ: {rarity}
-╰─➩ ᴘʀɪᴄᴇ: {price} Exlix
-╰─➩ ᴏᴡɴᴇᴅ ʙʏ: {global_count} Users
-╰──────────────────
-"""
+    caption = build_caption(character, global_count)
 
     keyboard = [
         [IKB("Who Has It 👥", callback_data=f"top_{character_id}")]
