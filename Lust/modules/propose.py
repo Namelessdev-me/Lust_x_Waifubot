@@ -74,7 +74,7 @@ async def propose(client, message: Message):
         )
     else:
         all_characters = list(await collection.find({}).to_list(length=None))
-        valid_characters = [char for char in all_characters if char.get('rarity') in rarity_map.keys()]
+        valid_characters = [char for char in all_characters if rarity_map.get(char.get('rarity')) is True]
 
         if not valid_characters:
             await message.reply_text(capsify("No characters available with the specified rarity."))
