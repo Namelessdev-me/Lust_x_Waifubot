@@ -4,7 +4,8 @@ from Lust import user_collection, collection, application
 from . import capsify
 from .block import block_dec_ptb
 import asyncio
-
+# Alias
+check = details
 
 def build_caption(character, global_count):
     rarity = character.get('rarity', "Unknown")
