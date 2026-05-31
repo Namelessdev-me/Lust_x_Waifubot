@@ -3,6 +3,7 @@ from telegram.ext import CommandHandler, CallbackContext, CallbackQueryHandler
 from Lust import user_collection, collection, application
 from . import capsify
 from .block import block_dec_ptb
+import asyncio
 
 
 @block_dec_ptb
@@ -40,19 +41,19 @@ async def details(update: Update, context: CallbackContext) -> None:
 """
 
     keyboard = [
-        [IKB("How many I have ❓", callback_data=f"check_{character_id}")]
+        [IKB("Who Has It 👥", callback_data=f"top_{character_id}")]
     ]
     reply_markup = IKM(keyboard)
 
     if char_type == "video":
-        await update.message.reply_video(
+        sent = await update.message.reply_video(
             video=character['img_url'],
             caption=capsify(caption),
             parse_mode='HTML',
             reply_markup=reply_markup
         )
     else:
-        await update.message.reply_photo(
+        sent = await update.message.reply_photo(
             photo=character['img_url'],
             caption=capsify(caption),
             parse_mode='HTML',
@@ -60,37 +61,119 @@ async def details(update: Update, context: CallbackContext) -> None:
         )
 
 
-async def check(update: Update, context: CallbackContext) -> None:
+    asyncio.create_task(auto_delete(sent, 120))
+
+
+async def auto_delete(message, delay: int):
+    await asyncio.sleep(delay)
+    try:
+        await message.delete()
+    except Exception:
+        pass
+
+
+async def top_holders(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
-    user_id = query.from_user.id
+    await query.answer()
 
-    data = query.data  
+    data = query.data
     parts = data.split('_')
+    character_id = parts[-1]
 
-    if len(parts) == 2:
-        character_id = parts[1]
-    elif len(parts) >= 3:
-        character_id = parts[-1]
+
+    pipeline = [
+        {"$match": {"characters.id": character_id}},
+        {"$project": {
+            "id": 1,
+            "first_name": 1,
+            "username": 1,
+            "count": {
+                "$size": {
+                    "$filter": {
+                        "input": "$characters",
+                        "as": "c",
+                        "cond": {"$eq": ["$$c.id", character_id]}
+                    }
+                }
+            }
+        }},
+        {"$sort": {"count": -1}},
+        {"$limit": 10}
+    ]
+
+    top_users = await user_collection.aggregate(pipeline).to_list(length=10)
+
+    if not top_users:
+        text = capsify("No one owns this character yet.")
     else:
-        await query.answer(capsify("Invalid data."), show_alert=True)
+        lines = [capsify("🏆 Top 10 Holders\n")]
+        for i, user in enumerate(top_users, 1):
+            name = user.get('first_name', 'Unknown')
+            username = user.get('username')
+            count = user.get('count', 0)
+            if username:
+                display = f"@{username}"
+            else:
+                display = name
+            lines.append(f"{i}. {display} — {count}x")
+        text = capsify("\n".join(lines))
+
+    keyboard = [
+        [IKB("⬅️ Back", callback_data=f"back_{character_id}")]
+    ]
+    reply_markup = IKM(keyboard)
+
+    await query.edit_message_caption(
+        caption=text,
+        parse_mode='HTML',
+        reply_markup=reply_markup
+    )
+
+
+async def back_to_details(update: Update, context: CallbackContext) -> None:
+    query = update.callback_query
+    await query.answer()
+
+    data = query.data
+    parts = data.split('_')
+    character_id = parts[-1]
+
+    character = await collection.find_one({'id': character_id})
+
+    if not character:
+        await query.answer(capsify("Character not found."), show_alert=True)
         return
 
-    user_data = await user_collection.find_one({'id': user_id})
+    global_count = await user_collection.count_documents({'characters.id': character['id']})
 
-    if user_data:
-        characters = user_data.get('characters', [])
-        quantity = sum(1 for char in characters if str(char.get('id', '')) == str(character_id))
-        await query.answer(
-            capsify(f"You have {quantity} of this character."),
-            show_alert=True
-        )
-    else:
-        await query.answer(
-            capsify("You don't have this character."),
-            show_alert=True
-        )
+    rarity = character.get('rarity', "Unknown")
+    price = character.get('price', "Unknown")
+    category = character.get('category', "None")
+
+    caption = f"""
+╒═══「 𝗖𝗛𝗔𝗥𝗔𝗖𝗧𝗘𝗥 𝗜𝗡𝗙𝗢 」
+╰─➩ ɴᴀᴍᴇ: {character['name']}
+╰─➩ ɪᴅ: {character['id']}
+╰─➩ ᴀɴɪᴍᴇ: {character['anime']}
+╰─➩ ᴄᴀᴛᴇɢᴏʀʏ: {category}
+╰─➩ ʀᴀʀɪᴛʏ: {rarity}
+╰─➩ ᴘʀɪᴄᴇ: {price} Exlix
+╰─➩ ᴏᴡɴᴇᴅ ʙʏ: {global_count} Users
+╰──────────────────
+"""
+
+    keyboard = [
+        [IKB("Who Has It 👥", callback_data=f"top_{character_id}")]
+    ]
+    reply_markup = IKM(keyboard)
+
+    await query.edit_message_caption(
+        caption=capsify(caption),
+        parse_mode='HTML',
+        reply_markup=reply_markup
+    )
 
 
 application.add_handler(CommandHandler('check', details, block=False))
-application.add_handler(CallbackQueryHandler(check, pattern="check_"))
-    
+application.add_handler(CallbackQueryHandler(top_holders, pattern=r"^top_"))
+application.add_handler(CallbackQueryHandler(back_to_details, pattern=r"^back_"))
