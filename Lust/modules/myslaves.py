@@ -6,7 +6,7 @@ from pyrogram.types import InlineKeyboardButton as IKB, InlineKeyboardMarkup as 
 from . import user_collection, capsify, app
 from .block import temp_block, block_cbq
 
-AUTO_DELETE_SECONDS = 10
+AUTO_DELETE_SECONDS = 200
 
 async def auto_delete(msg, delay=AUTO_DELETE_SECONDS):
     """Delete a message after `delay` seconds."""
