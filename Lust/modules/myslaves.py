@@ -18,14 +18,13 @@ async def build_myslaves(user_id, page=0):
     character_counts = {k: len(list(v)) for k, v in groupby(characters, key=lambda x: x['id'])}
     unique_characters = list({c['id']: c for c in characters}.values())
 
-    total_pages = max(1, math.ceil(len(unique_characters) / 7))
+    total_pages = max(1, math.ceil(len(unique_characters) / 10))
     if page < 0 or page >= total_pages:
         page = 0
 
     username = user.get('first_name', 'User')
 
-    
-    current_characters = unique_characters[page * 7:(page + 1) * 7]
+    current_characters = unique_characters[page * 10:(page + 1) * 10]
     grouped = {}
     for c in current_characters:
         anime = c.get('anime', 'Unknown')
@@ -33,17 +32,14 @@ async def build_myslaves(user_id, page=0):
             grouped[anime] = []
         grouped[anime].append(c)
 
-
     anime_totals = {}
     for c in unique_characters:
         anime = c.get('anime', 'Unknown')
         anime_totals[anime] = anime_totals.get(anime, 0) + 1
 
-
     myslaves_message = f"𓆩 {capsify(username)}'s Harem\n"
     myslaves_message += capsify(f"Total Waifus: {len(unique_characters)}\n")
     myslaves_message += capsify(f"Page {page+1}/{total_pages}\n")
-
 
     for anime, chars in grouped.items():
         anime_count_on_page = len(chars)
@@ -60,34 +56,33 @@ async def build_myslaves(user_id, page=0):
     if cmode != 'All':
         inline_query += f".{cmode}"
 
+
     keyboard = [
         [
-            IKB(capsify(f"Inline ({len(unique_characters)})"), switch_inline_query_current_chat=inline_query),
-        ],
-        [
-            IKB("🍹 Myslaves", switch_inline_query_current_chat=f"collection.{user_id}"),
-            IKB("ANI 🎥", switch_inline_query_current_chat=f"vcollection.{user_id}")
+            IKB("👁 ᴠɪᴇᴡ", switch_inline_query_current_chat=inline_query),
+            IKB("🍹 ꜱʟᴀᴠᴇ", switch_inline_query_current_chat=f"collection.{user_id}"),
+            IKB("🎥 ᴀɴɪ", switch_inline_query_current_chat=f"vcollection.{user_id}")
         ]
     ]
 
     if total_pages > 1:
         nav_buttons = []
         if page > 0:
-            nav_buttons.append(IKB(capsify("◄"), callback_data=f"myslaves:{page-1}:{user_id}"))
+            nav_buttons.append(IKB("◄", callback_data=f"myslaves:{page-1}:{user_id}"))
         if page < total_pages - 1:
-            nav_buttons.append(IKB(capsify("►"), callback_data=f"myslaves:{page+1}:{user_id}"))
+            nav_buttons.append(IKB("►", callback_data=f"myslaves:{page+1}:{user_id}"))
         if nav_buttons:
             keyboard.append(nav_buttons)
 
         skip_buttons = []
         if page > 4:
-            skip_buttons.append(IKB(capsify("x5◀"), callback_data=f"myslaves:{page-5}:{user_id}"))
+            skip_buttons.append(IKB("«5", callback_data=f"myslaves:{page-5}:{user_id}"))
         if page < total_pages - 5:
-            skip_buttons.append(IKB(capsify("▶5x"), callback_data=f"myslaves:{page+5}:{user_id}"))
+            skip_buttons.append(IKB("5»", callback_data=f"myslaves:{page+5}:{user_id}"))
         if skip_buttons:
             keyboard.append(skip_buttons)
 
-    keyboard.append([IKB(capsify("Close"), callback_data=f"myslaves:close_{user_id}")])
+    keyboard.append([IKB("✖", callback_data=f"myslaves:close_{user_id}")])
     markup = IKM(keyboard)
 
     fav_media = None
