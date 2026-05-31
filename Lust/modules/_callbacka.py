@@ -4,7 +4,7 @@ from Lust import application
 #from .cmode import cmode_callback
 from Lust.utils.button import button_click as bc
 #from .myslaves import myslaves_callback as hc
-from .info import details, check
+from .info import check
 #from .sgift import confirm_gift, cancel_gift
 from .trade import confirm_trade, cancel_trade
 from .rps import rps_button 
