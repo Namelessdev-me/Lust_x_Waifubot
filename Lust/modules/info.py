@@ -4,8 +4,7 @@ from Lust import user_collection, collection, application
 from . import capsify
 from .block import block_dec_ptb
 import asyncio
-# Alias
-check = details
+
 
 def build_caption(character, global_count):
     rarity = character.get('rarity', "Unknown")
@@ -54,7 +53,7 @@ async def auto_delete(message, delay: int):
 
 
 @block_dec_ptb
-async def details(update: Update, context: CallbackContext) -> None:
+async def check(update: Update, context: CallbackContext) -> None:
     try:
         args = context.args
         character_id = args[0]
@@ -141,12 +140,11 @@ async def top_holders(update: Update, context: CallbackContext) -> None:
 
     text = capsify(build_top_caption(top_users, character.get('name', '')))
     keyboard = [[IKB("⬅️ Back", callback_data=f"back_{character_id}")]]
-    reply_markup = IKM(keyboard)
 
     await query.edit_message_caption(
         caption=text,
         parse_mode='HTML',
-        reply_markup=reply_markup
+        reply_markup=IKM(keyboard)
     )
 
 
@@ -169,15 +167,14 @@ async def back_to_details(update: Update, context: CallbackContext) -> None:
     keyboard = [
         [IKB("Who Has It 👥", callback_data=f"top_{character_id}")]
     ]
-    reply_markup = IKM(keyboard)
 
     await query.edit_message_caption(
         caption=capsify(caption),
         parse_mode='HTML',
-        reply_markup=reply_markup
+        reply_markup=IKM(keyboard)
     )
 
 
-application.add_handler(CommandHandler('check', details, block=False))
+application.add_handler(CommandHandler('check', check, block=False))
 application.add_handler(CallbackQueryHandler(top_holders, pattern=r"^top_"))
 application.add_handler(CallbackQueryHandler(back_to_details, pattern=r"^back_"))
