@@ -7,9 +7,10 @@ from . import user_collection, capsify, app
 from .block import temp_block, block_cbq
 
 AUTO_DELETE_SECONDS = 200
+MAIN_GC_ID = -1003975062619
+MAIN_GC_LINK = "https://t.me/LustXGroups"
 
 async def auto_delete(msg, delay=AUTO_DELETE_SECONDS):
-    """Delete a message after `delay` seconds."""
     await asyncio.sleep(delay)
     try:
         await msg.delete()
@@ -67,10 +68,8 @@ async def build_myslaves(user_id, page=0):
     if cmode != 'All':
         inline_query += f".{cmode}"
 
-
     keyboard = [
         [
-            IKB("👁 ᴠɪᴇᴡ", switch_inline_query_current_chat=inline_query),
             IKB("🍹 ꜱʟᴀᴠᴇ", switch_inline_query_current_chat=f"collection.{user_id}"),
             IKB("🎥 ᴀɴɪ", switch_inline_query_current_chat=f"vcollection.{user_id}")
         ]
@@ -108,10 +107,27 @@ async def build_myslaves(user_id, page=0):
     return myslaves_message, markup, (fav_media, fav_type)
 
 
+async def is_gc_member(user_id):
+    try:
+        member = await app.get_chat_member(MAIN_GC_ID, user_id)
+        return member.status.value not in ("kicked", "left")
+    except Exception:
+        return False
+
+
 @app.on_message(filters.command(["myslaves", "collection"]))
 async def myslaves_cmd(client, message):
     user_id = message.from_user.id
     if temp_block(user_id):
+        return
+
+    if not await is_gc_member(user_id):
+        sent = await message.reply_text(
+            capsify("❌ You must join our main group to use myslaves!"),
+            reply_markup=IKM([[IKB("✨ Join Main GC", url=MAIN_GC_LINK)]]),
+            quote=True
+        )
+        asyncio.create_task(auto_delete(sent))
         return
 
     text, markup, media_info = await build_myslaves(user_id, 0)
