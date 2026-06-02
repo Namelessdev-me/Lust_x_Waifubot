@@ -1,103 +1,106 @@
-from Lust import user_collection
-from . import capsify, app
-from .block import block_dec, temp_block, block_cbq
-from pyrogram import filters
-from pyrogram.types import InlineKeyboardMarkup as IKM, InlineKeyboardButton as IKB
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram.ext import CommandHandler, CallbackQueryHandler, CallbackContext
+from Lust import user_collection, application
+from .block import block_dec_ptb, block_cbq_ptb
+from . import capsify
+
 
 async def safe_edit(msg, text):
     try:
         await msg.edit_text(text)
     except:
         try:
-            await msg.edit_caption(text)
+            await msg.edit_caption(caption=text)
         except:
-            try:
-                await msg.reply(text)
-            except:
-                pass
+            pass
 
-@app.on_message(filters.command("gift"))
-@block_dec
-async def gift(client, message):
+
+@block_dec_ptb
+async def gift(update: Update, context: CallbackContext):
+    message = update.message
     sender_id = message.from_user.id
-    if temp_block(sender_id): return
 
     if not message.reply_to_message:
-        await message.reply(capsify("Reply to a user to gift a character!")); return
+        await message.reply_text(capsify("Reply to a user to gift a character!"))
+        return
 
     receiver_id = message.reply_to_message.from_user.id
 
     if sender_id == receiver_id:
-        await message.reply(capsify("You can't gift a character to yourself!")); return
+        await message.reply_text(capsify("You can't gift a character to yourself!"))
+        return
 
-    if len(message.command) != 2:
-        await message.reply(capsify("Provide a character ID!")); return
+    if not context.args or len(context.args) != 1:
+        await message.reply_text(capsify("Provide a character ID!"))
+        return
 
-    character_id = message.command[1]
+    character_id = context.args[0]
     sender = await user_collection.find_one({'id': sender_id})
 
     if not sender:
-        await message.reply(capsify("You don't have any characters!")); return
+        await message.reply_text(capsify("You don't have any characters!"))
+        return
 
     character = next((c for c in sender.get('characters', []) if str(c.get('id')) == str(character_id)), None)
 
     if not character:
-        await message.reply(capsify(f"You don't have character {character_id}!")); return
+        await message.reply_text(capsify(f"You don't have character {character_id}!"))
+        return
 
-    media = character.get("img_url", "")
-    inline_query = f"collection.{sender_id}"
-    if media.endswith((".mp4", ".gif", ".webm", ".mkv")):
-        inline_query = f"vcollection.{sender_id}"
+    msg_text = (f"{capsify('🎁 CONFIRM GIFTING')}\n\n"
+                f"{capsify('♦️ NAME:')} {capsify(character['name'])}\n"
+                f"{capsify('🧧 ANIME:')} {capsify(character['anime'])}\n"
+                f"{capsify('🆔:')} {character['id']}\n"
+                f"{capsify('🌟:')} {character.get('rarity', '🔮 LIMITED')}")
 
-    msg = (f"{capsify('🎁 CONFIRM GIFTING')}\n\n"
-           f"{capsify('♦️ NAME:')} {capsify(character['name'])}\n"
-           f"{capsify('🧧 ANIME:')} {capsify(character['anime'])}\n"
-           f"{capsify('🆔:')} {character['id']}\n"
-           f"{capsify('🌟:')} {character.get('rarity', '🔮 LIMITED')}")
-
-    keyboard = IKM([
-        [IKB("🔎 INLINE", switch_inline_query_current_chat=inline_query)],
-        [IKB("✅ CONFIRM", callback_data=f"con_gift:{sender_id}:{character_id}:{receiver_id}"),
-         IKB("❌ CANCEL", callback_data=f"can_gift:{sender_id}")]
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("✅ CONFIRM", callback_data=f"con_gift:{sender_id}:{character_id}:{receiver_id}"),
+         InlineKeyboardButton("❌ CANCEL", callback_data=f"can_gift:{sender_id}")]
     ])
 
-    await message.reply(msg, reply_markup=keyboard)
+    await message.reply_text(msg_text, reply_markup=keyboard)
 
 
-@app.on_callback_query(filters.regex(r"^(con_gift|can_gift):"))
-@block_cbq
-async def gift_callback(client, query):
+@block_cbq_ptb
+async def gift_callback(update: Update, context: CallbackContext):
+    query = update.callback_query
+    await query.answer()
+
     data = query.data.split(":", 3)
     action = data[0]
     sender_id = int(data[1])
 
     if query.from_user.id != sender_id:
-        await query.answer("This is not for you!", show_alert=True); return
+        await query.answer("This is not for you!", show_alert=True)
+        return
 
     if action == "can_gift":
-        await query.answer("Gift cancelled!", show_alert=False)
         await safe_edit(query.message, capsify("❌ GIFT CANCELED"))
         return
 
     if action == "con_gift":
         if len(data) < 4:
-            await query.answer("Invalid data!", show_alert=True); return
+            await query.answer("Invalid data!", show_alert=True)
+            return
 
         character_id = data[2]
         receiver_id = int(data[3])
 
         sender = await user_collection.find_one({'id': sender_id})
         if not sender:
-            await query.answer("Your data not found!", show_alert=True); return
+            await query.answer("Your data not found!", show_alert=True)
+            return
 
         character = next((c for c in sender.get('characters', []) if str(c.get('id')) == str(character_id)), None)
         if not character:
-            await query.answer("Character not found!", show_alert=True)
-            await safe_edit(query.message, capsify("❌ CHARACTER NOT FOUND")); return
+            await query.answer("Character not found in your collection!", show_alert=True)
+            await safe_edit(query.message, capsify("❌ CHARACTER NOT FOUND"))
+            return
 
         new_sender_chars = [c for c in sender.get('characters', []) if str(c['id']) != str(character_id)]
         if len(new_sender_chars) == len(sender.get('characters', [])):
-            await query.answer("Character already gifted!", show_alert=True); return
+            await query.answer("Character already gifted!", show_alert=True)
+            return
 
         await user_collection.update_one({'id': sender_id}, {'$set': {'characters': new_sender_chars}})
 
@@ -113,6 +116,8 @@ async def gift_callback(client, query):
                        f"{capsify('🆔:')} {character['id']}\n"
                        f"{capsify('🌟:')} {character.get('rarity', '🔮 LIMITED')}")
 
-        await query.answer("✅ Gift sent!", show_alert=False)
         await safe_edit(query.message, success_msg)
-                
+
+
+application.add_handler(CommandHandler("gift", gift))
+        
