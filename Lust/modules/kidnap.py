@@ -1,3 +1,4 @@
+import asyncio
 import random
 import time
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
@@ -13,7 +14,7 @@ ALLOWED_RARITIES = {"🟡 Legendary", "🔮 Limited", "🎐 Devine"}
 
 
 RARITY_SUCCESS_RATE = {
-    "🔮 Limited": 45,  
+    "🔮 Limited": 45,   
     "🟡 Legendary": 50, 
     "🎐 Devine": 40,    
 }
@@ -68,7 +69,7 @@ async def kidnap(update: Update, context: CallbackContext):
     )
 
     keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("😈 KIDNAP HER", callback_data=f"kidnap:{user_id}")]
+        [InlineKeyboardButton("👹 KIDNAP HER", callback_data=f"kidnap:{user_id}")]
     ])
 
     try:
@@ -137,7 +138,7 @@ async def kidnap_callback(update: Update, context: CallbackContext):
             await user_collection.insert_one({'id': owner_id, 'characters': [character]})
 
         result_text = (
-            f"{capsify('😈 YOU KNOCKED HER OUT!')}\n\n"
+            f"{capsify('😏 YOU KNOCKED HER OUT!')}\n\n"
             f"{capsify('♦️ NAME:')} {capsify(name)}\n"
             f"{capsify('🧧 ANIME:')} {capsify(anime)}\n"
             f"{capsify('🆔:')} {char_id}\n"
@@ -164,4 +165,4 @@ async def kidnap_callback(update: Update, context: CallbackContext):
 
 
 application.add_handler(CommandHandler("kidnap", kidnap))
-application.add_handler(CallbackQueryHandler(kidnap_callback, pattern=r"^kidnap:"))
+    
