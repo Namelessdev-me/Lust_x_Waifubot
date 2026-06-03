@@ -152,48 +152,29 @@ async def inlinequery(update: Update, context: CallbackContext):
             return
 
 
-        unique_map = {}
-        for c in user_chars:
-            cid = c.get("id")
-            if cid and cid not in unique_map:
-                unique_map[cid] = c
-
-        unique_chars = sorted(unique_map.values(), key=lambda x: (x.get('anime', ''), x.get('id', '')))
-
-
-        if video_only:
-            unique_chars = [c for c in unique_chars if c.get("type") == "video"]
-        else:
-            unique_chars = [c for c in unique_chars if c.get("type", "photo") != "video"]
-
-        # Pagination
-        offset = int(update.inline_query.offset) if update.inline_query.offset else 0
-        results_per_page = 15
-        page_chars = unique_chars[offset:offset + results_per_page]
-
-        if not page_chars:
-            await update.inline_query.answer([], cache_time=1)
-            return
-
-        # Fetch fresh DB data only for this page's characters
-        page_ids = [c["id"] for c in page_chars]
+        char_ids = list({c["id"] for c in user_chars if "id" in c})
         db_chars = await collection.find(
-            {"id": {"$in": page_ids}},
+            {"id": {"$in": char_ids}},
             {'name': 1, 'anime': 1, 'img_url': 1, 'id': 1, 'rarity': 1, 'type': 1, 'category': 1}
         ).to_list(length=None)
-        db_map = {c["id"]: c for c in db_chars}
+        char_map = {c["id"]: c for c in db_chars}
 
         results = []
-        for c in page_chars:
-            character = db_map.get(c["id"], c)  # fallback to user's stored data
+        seen_ids = set()
+        for char in user_chars:
+            cid = char.get("id")
+            if not cid or cid in seen_ids:
+                continue
+            character = char_map.get(cid)
+            if not character:
+                continue
+            if video_only and character.get("type") != "video":
+                continue
+            seen_ids.add(cid)
             results.append(build_result(character, from_user_id))
 
-        # next_offset: always set if there are more characters after this page
-        has_more = (offset + results_per_page) < len(unique_chars)
-        next_offset = str(offset + results_per_page) if has_more else ""
-
         try:
-            await update.inline_query.answer(results, next_offset=next_offset, cache_time=5)
+            await update.inline_query.answer(results[:50], cache_time=5)
         except Exception:
             pass
         return
@@ -213,16 +194,11 @@ async def inlinequery(update: Update, context: CallbackContext):
             }).to_list(length=None)
             all_characters_cache['all_characters'] = all_characters
     else:
-        cache_key = f"search_{query.lower()}"
-        if cache_key in all_characters_cache:
-            all_characters = all_characters_cache[cache_key]
-        else:
-            regex = re.compile(query, re.IGNORECASE)
-            all_characters = await collection.find(
-                {"$or": [{"name": regex}, {"anime": regex}]},
-                {'name': 1, 'anime': 1, 'img_url': 1, 'id': 1, 'rarity': 1, 'type': 1, 'category': 1}
-            ).to_list(length=None)
-            all_characters_cache[cache_key] = all_characters
+        regex = re.compile(query, re.IGNORECASE)
+        all_characters = await collection.find(
+            {"$or": [{"name": regex}, {"anime": regex}]},
+            {'name': 1, 'anime': 1, 'img_url': 1, 'id': 1, 'rarity': 1, 'type': 1, 'category': 1}
+        ).to_list(length=None)
 
     characters = list(all_characters)[start_index:end_index]
     results = [build_result(c, from_user_id) for c in characters]
@@ -236,4 +212,3 @@ async def inlinequery(update: Update, context: CallbackContext):
 
 
 application.add_handler(InlineQueryHandler(inlinequery, block=False))
-                
