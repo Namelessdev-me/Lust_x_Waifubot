@@ -18,7 +18,7 @@ RARITY_SUCCESS_RATE = {
     "🟡 Legendary": 50, 
     "🎐 Devine": 40,    
 }
-DEFAULT_SUCCESS_RATE = 50%
+DEFAULT_SUCCESS_RATE = 50
 
 pending_kidnaps = {}
 kidnap_cooldowns = {}
