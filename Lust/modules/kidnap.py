@@ -1,7 +1,7 @@
 import random
 import time
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import CommandHandler, CallbackContext
+from telegram.ext import CommandHandler, CallbackContext, CallbackQueryHandler
 from Lust import user_collection, collection, application
 from Lust.utils import show, deduct
 from .block import block_dec_ptb, block_cbq_ptb
@@ -68,7 +68,7 @@ async def kidnap(update: Update, context: CallbackContext):
     )
 
     keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("👹 KIDNAP HER", callback_data=f"kidnap:{user_id}")]
+        [InlineKeyboardButton("😈 KIDNAP HER", callback_data=f"kidnap:{user_id}")]
     ])
 
     try:
@@ -165,4 +165,3 @@ async def kidnap_callback(update: Update, context: CallbackContext):
 
 application.add_handler(CommandHandler("kidnap", kidnap))
 application.add_handler(CallbackQueryHandler(kidnap_callback, pattern=r"^kidnap:"))
-    
