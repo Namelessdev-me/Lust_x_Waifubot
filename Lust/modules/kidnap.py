@@ -1,4 +1,5 @@
 import random
+import time
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import CommandHandler, CallbackContext
 from Lust import user_collection, collection, application
@@ -7,15 +8,31 @@ from .block import block_dec_ptb, block_cbq_ptb
 from . import capsify
 
 ENTRY_FEE = 5000
-SUCCESS_RATE = 55
+COOLDOWN = 50
 ALLOWED_RARITIES = {"🟡 Legendary", "🔮 Limited", "🎐 Devine"}
 
+
+RARITY_SUCCESS_RATE = {
+    "🔮 Limited": 45,  
+    "🟡 Legendary": 50, 
+    "🎐 Devine": 40,    
+}
+DEFAULT_SUCCESS_RATE = 50
+
 pending_kidnaps = {}
+kidnap_cooldowns = {}
 
 
 @block_dec_ptb
 async def kidnap(update: Update, context: CallbackContext):
     user_id = update.effective_user.id
+
+    now = time.time()
+    if user_id in kidnap_cooldowns:
+        remaining = COOLDOWN - (now - kidnap_cooldowns[user_id])
+        if remaining > 0:
+            await update.message.reply_text(capsify(f"⏳ Wait {int(remaining)}s before kidnapping again!"))
+            return
 
     if user_id in pending_kidnaps:
         await update.message.reply_text(capsify("❌ You already have an active kidnap attempt!"))
@@ -34,6 +51,7 @@ async def kidnap(update: Update, context: CallbackContext):
     character = random.choice(valid_chars)
     await deduct(user_id, ENTRY_FEE)
     pending_kidnaps[user_id] = character
+    kidnap_cooldowns[user_id] = now
 
     name = character.get('name', 'Unknown')
     anime = character.get('anime', 'Unknown')
@@ -50,7 +68,7 @@ async def kidnap(update: Update, context: CallbackContext):
     )
 
     keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("😈 KIDNAP HER", callback_data=f"kidnap:{user_id}")]
+        [InlineKeyboardButton("👹 KIDNAP HER", callback_data=f"kidnap:{user_id}")]
     ])
 
     try:
@@ -85,7 +103,31 @@ async def kidnap_callback(update: Update, context: CallbackContext):
     char_id = character.get('id', '???')
     rarity = character.get('rarity', '???')
 
-    success = random.randint(1, 100) <= SUCCESS_RATE
+
+    process_text = (
+        f"{capsify('⏳ PROCESS IN PROGRESS.....')}\n\n"
+        f"{capsify('♦️ NAME:')} {capsify(name)}\n"
+        f"{capsify('🧧 ANIME:')} {capsify(anime)}\n"
+        f"{capsify('🆔:')} {char_id}\n"
+        f"{capsify('🌟 RARITY:')} {rarity}"
+    )
+
+    try:
+        await query.edit_message_caption(caption=process_text, reply_markup=None)
+    except Exception:
+        try:
+            await query.edit_message_text(text=process_text, reply_markup=None)
+        except Exception:
+            pass
+
+    await query.answer()
+
+
+    await asyncio.sleep(2)
+
+
+    success_rate = RARITY_SUCCESS_RATE.get(rarity, DEFAULT_SUCCESS_RATE)
+    success = random.randint(1, 100) <= success_rate
 
     if success:
         user_data = await user_collection.find_one({'id': owner_id})
@@ -120,8 +162,7 @@ async def kidnap_callback(update: Update, context: CallbackContext):
         except Exception:
             pass
 
-    await query.answer()
-
 
 application.add_handler(CommandHandler("kidnap", kidnap))
-
+application.add_handler(CallbackQueryHandler(kidnap_callback, pattern=r"^kidnap:"))
+    
