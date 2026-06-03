@@ -151,7 +151,6 @@ async def inlinequery(update: Update, context: CallbackContext):
             await update.inline_query.answer([], cache_time=1)
             return
 
-
         char_ids = list({c["id"] for c in user_chars if "id" in c})
         db_chars = await collection.find(
             {"id": {"$in": char_ids}},
@@ -173,8 +172,13 @@ async def inlinequery(update: Update, context: CallbackContext):
             seen_ids.add(cid)
             results.append(build_result(character, from_user_id))
 
+        offset = int(update.inline_query.offset) if update.inline_query.offset else 0
+        page_size = 50
+        page_results = results[offset:offset + page_size]
+        next_offset = str(offset + page_size) if offset + page_size < len(results) else ""
+
         try:
-            await update.inline_query.answer(results[:50], cache_time=5)
+            await update.inline_query.answer(page_results, next_offset=next_offset, cache_time=5)
         except Exception:
             pass
         return
