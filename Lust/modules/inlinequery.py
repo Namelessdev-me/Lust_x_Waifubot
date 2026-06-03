@@ -68,7 +68,7 @@ def is_url(val):
 
 
 def build_result(character, from_user_id):
-    """Build inline result — URL → IQP/IQV, file_id → IQCP/IQCV"""
+
     rarity = RARITY_MAP.get(character.get("rarity"), character.get("rarity", ""))
     cat_key = character.get("category", "")
     category = CATEGORY_MAP.get(cat_key, "")
@@ -92,7 +92,6 @@ def build_result(character, from_user_id):
     uid = f"{character['id']}_{int(time.time())}"
 
     if is_url(img):
-
         if char_type == "video":
             return IQV(
                 id=uid,
@@ -112,7 +111,6 @@ def build_result(character, from_user_id):
                 reply_markup=reply_markup
             )
     else:
-
         if char_type == "video":
             return IQCV(
                 id=uid,
@@ -151,36 +149,51 @@ async def inlinequery(update: Update, context: CallbackContext):
             await update.inline_query.answer([], cache_time=1)
             return
 
-        char_ids = list({c["id"] for c in user_chars if "id" in c})
+
+        seen = set()
+        unique_char_ids = []
+        for char in user_chars:
+            cid = char.get("id")
+            if cid and cid not in seen:
+                seen.add(cid)
+                unique_char_ids.append(cid)
+
+
+        offset = int(update.inline_query.offset) if update.inline_query.offset else 0
+        page_size = 50
+        
+
+        if offset >= len(unique_char_ids):
+            await update.inline_query.answer([], cache_time=1)
+            return
+        
+
+        page_ids = unique_char_ids[offset:offset + page_size]
+        
+
         db_chars = await collection.find(
-            {"id": {"$in": char_ids}},
+            {"id": {"$in": page_ids}},
             {'name': 1, 'anime': 1, 'img_url': 1, 'id': 1, 'rarity': 1, 'type': 1, 'category': 1}
         ).to_list(length=None)
         char_map = {c["id"]: c for c in db_chars}
 
+
         results = []
-        seen_ids = set()
-        for char in user_chars:
-            cid = char.get("id")
-            if not cid or cid in seen_ids:
-                continue
+        for cid in page_ids:
             character = char_map.get(cid)
             if not character:
                 continue
             if video_only and character.get("type") != "video":
                 continue
-            seen_ids.add(cid)
             results.append(build_result(character, from_user_id))
+        
 
-        offset = int(update.inline_query.offset) if update.inline_query.offset else 0
-        page_size = 50
-        page_results = results[offset:offset + page_size]
-        next_offset = str(offset + page_size) if offset + page_size < len(results) else ""
+        next_offset = str(offset + page_size) if offset + page_size < len(unique_char_ids) else ""
 
         try:
-            await update.inline_query.answer(page_results, next_offset=next_offset, cache_time=5)
-        except Exception:
-            pass
+            await update.inline_query.answer(results, next_offset=next_offset, cache_time=5)
+        except Exception as e:
+            print(f"Error answering inline query: {e}")
         return
 
     
@@ -211,8 +224,8 @@ async def inlinequery(update: Update, context: CallbackContext):
 
     try:
         await update.inline_query.answer(results, next_offset=next_offset, cache_time=5)
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Error answering inline query: {e}")
 
 
 application.add_handler(InlineQueryHandler(inlinequery, block=False))
