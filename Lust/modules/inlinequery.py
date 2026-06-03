@@ -151,7 +151,7 @@ async def inlinequery(update: Update, context: CallbackContext):
             await update.inline_query.answer([], cache_time=1)
             return
 
-        # Unique characters only (same as myslaves), sorted by anime+id
+
         unique_map = {}
         for c in user_chars:
             cid = c.get("id")
@@ -160,9 +160,11 @@ async def inlinequery(update: Update, context: CallbackContext):
 
         unique_chars = sorted(unique_map.values(), key=lambda x: (x.get('anime', ''), x.get('id', '')))
 
-        # Filter video if needed
+
         if video_only:
             unique_chars = [c for c in unique_chars if c.get("type") == "video"]
+        else:
+            unique_chars = [c for c in unique_chars if c.get("type", "photo") != "video"]
 
         # Pagination
         offset = int(update.inline_query.offset) if update.inline_query.offset else 0
@@ -234,4 +236,4 @@ async def inlinequery(update: Update, context: CallbackContext):
 
 
 application.add_handler(InlineQueryHandler(inlinequery, block=False))
-        
+                
