@@ -174,7 +174,7 @@ async def inlinequery(update: Update, context: CallbackContext):
             results.append(build_result(character, from_user_id))
 
         try:
-            await update.inline_query.answer(results[:1000], cache_time=5)
+            await update.inline_query.answer(results[:50], cache_time=5)
         except Exception:
             pass
         return
