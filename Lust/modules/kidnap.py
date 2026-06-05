@@ -16,7 +16,7 @@ ALLOWED_RARITIES = {"🟡 Legendary", "🔮 Limited", "🎐 Devine"}
 RARITY_SUCCESS_RATE = {
     "🔮 Limited": 40,   
     "🟡 Legendary": 50, 
-    "🎐 Devine": 13,    
+    "🎐 Devine": 20,    
 }
 DEFAULT_SUCCESS_RATE = 50
 
