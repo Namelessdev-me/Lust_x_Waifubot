@@ -93,7 +93,7 @@ async def spawn_character(chat_id):
             "🐦‍🔥 Exotic":  0.0,
             "🎐 Devine":    0.1,
             "💦 Wet":    0.3,
-            "🎥 Animation": 0.1
+            "🎥 Animation": 25.0
         }
 
         active_weights = {r: w for r, w in rarity_weights.items() if rarity_enabled.get(r, True)}
