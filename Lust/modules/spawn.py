@@ -91,7 +91,7 @@ async def spawn_character(chat_id):
             "💋 Nude":      2.5,
             "🔮 Limited":   1.5,
             "🐦‍🔥 Exotic":  0.0,
-            "🎐 Devine":    0.1,
+            "🎐 Devine":    3.1,
             "💦 Wet":    0.3,
             "🎥 Animation": 0.1
         }
