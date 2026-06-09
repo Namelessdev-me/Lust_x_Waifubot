@@ -112,7 +112,7 @@ async def smash_callback(update: Update, context: CallbackContext):
     await query.answer()
     await asyncio.sleep(2)
 
-    success = random.randint(1, 100) <= 45
+    success = random.randint(1, 100) <= 35
 
     if success:
         user_data = await user_collection.find_one({"id": owner_id})
