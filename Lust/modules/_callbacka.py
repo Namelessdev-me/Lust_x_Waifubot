@@ -8,6 +8,7 @@ from .rps import rps_button
 from .sgift import gift_callback
 from .kidnap import kidnap_callback
 from .block import block_cbq_ptb
+from .smash import smash_callback
 
 @block_cbq_ptb
 async def cbq(update: Update, context: CallbackContext):
@@ -23,6 +24,8 @@ async def cbq(update: Update, context: CallbackContext):
         await gift_callback(update, context)
     elif data.startswith('kidnap:'):
         await kidnap_callback(update, context)
+    elif data.startswith('smash:'):
+        await smash_callback(update, context)
     elif data in ('rock', 'paper', 'scissors', 'play_again'):
         await rps_button(update, context)
 
