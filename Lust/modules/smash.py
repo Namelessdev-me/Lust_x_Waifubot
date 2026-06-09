@@ -7,7 +7,7 @@ from Lust import user_collection, collection, application
 from . import capsify
 from .block import block_dec_ptb, block_cbq_ptb
 
-COOLDOWN = 60
+COOLDOWN = 900
 
 pending_smash = {}
 smash_cooldowns = {}
