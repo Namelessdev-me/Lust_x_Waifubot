@@ -68,8 +68,7 @@ def is_url(val):
 
 
 def build_result(character, from_user_id):
-
-    rarity = RARITY_MAP.get(character.get("rarity"), character.get("rarity", ""))
+    rarity = character.get("rarity", "")
     cat_key = character.get("category", "")
     category = CATEGORY_MAP.get(cat_key, "")
 
@@ -88,7 +87,7 @@ def build_result(character, from_user_id):
     reply_markup = IKM(keyboard)
 
     img = character.get("img_url", "")
-    char_type = character.get("type", "photo")
+    char_type = character.get("type") or "photo"
     uid = f"{character['id']}_{int(time.time())}"
 
     if is_url(img):
@@ -133,10 +132,14 @@ async def inlinequery(update: Update, context: CallbackContext):
     query = update.inline_query.query.strip()
     from_user_id = update.inline_query.from_user.id
 
-    
     if query.startswith("collection.") or query.startswith("vcollection."):
         parts = query.split(".")
-        user_id = int(parts[1])
+        try:
+            user_id = int(parts[1])
+        except (IndexError, ValueError):
+            await update.inline_query.answer([], cache_time=1)
+            return
+
         video_only = query.startswith("vcollection.")
 
         user = await user_collection.find_one({'id': user_id})
@@ -149,7 +152,6 @@ async def inlinequery(update: Update, context: CallbackContext):
             await update.inline_query.answer([], cache_time=1)
             return
 
-
         seen = set()
         unique_char_ids = []
         for char in user_chars:
@@ -158,18 +160,14 @@ async def inlinequery(update: Update, context: CallbackContext):
                 seen.add(cid)
                 unique_char_ids.append(cid)
 
-
         offset = int(update.inline_query.offset) if update.inline_query.offset else 0
         page_size = 50
-        
 
         if offset >= len(unique_char_ids):
             await update.inline_query.answer([], cache_time=1)
             return
-        
 
         page_ids = unique_char_ids[offset:offset + page_size]
-        
 
         db_chars = await collection.find(
             {"id": {"$in": page_ids}},
@@ -177,16 +175,27 @@ async def inlinequery(update: Update, context: CallbackContext):
         ).to_list(length=None)
         char_map = {c["id"]: c for c in db_chars}
 
-
         results = []
         for cid in page_ids:
             character = char_map.get(cid)
             if not character:
                 continue
-            if video_only and character.get("type") != "video":
+            char_type = character.get("type") or "photo"
+            if video_only and char_type != "video":
                 continue
             results.append(build_result(character, from_user_id))
-        
+
+        if not results and video_only:
+            try:
+                await update.inline_query.answer(
+                    [],
+                    cache_time=1,
+                    switch_pm_text=capsify("No video characters in collection"),
+                    switch_pm_parameter="start"
+                )
+            except Exception:
+                await update.inline_query.answer([], cache_time=1)
+            return
 
         next_offset = str(offset + page_size) if offset + page_size < len(unique_char_ids) else ""
 
@@ -196,7 +205,6 @@ async def inlinequery(update: Update, context: CallbackContext):
             print(f"Error answering inline query: {e}")
         return
 
-    
     offset = int(update.inline_query.offset) if update.inline_query.offset else 0
     results_per_page = 15
     start_index = offset
@@ -229,3 +237,4 @@ async def inlinequery(update: Update, context: CallbackContext):
 
 
 application.add_handler(InlineQueryHandler(inlinequery, block=False))
+        
