@@ -1,7 +1,7 @@
 import os
 OWNER_ID = 8779269421
 GROUP_ID = -1002486274374
-TOKEN = "8985107066:AAFgACYTkQ-RmSU6WCl4oZDT9ParnvcjVOY"
+TOKEN = "8985107066:AAF7VMW9aFPtQyIZnrsoCV16QTUwmQzBNek"
 api_id = 35009179
 api_hash = "a76bbe9b7a26e7ad2af351b07dca34e2"
 PHOTO_URL = ["https://files.catbox.moe/82wsna.mp4"]
