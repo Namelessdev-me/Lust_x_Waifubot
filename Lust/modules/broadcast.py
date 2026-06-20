@@ -3,7 +3,7 @@ from pyrogram.types import Message
 from datetime import datetime
 import asyncio
 
-from . import user_collection, app, capsify
+from . import user_collection, top_global_groups_collection, app, capsify
 from Lust import *
 from .block import block_dec, temp_block
 
@@ -88,7 +88,7 @@ async def group_broadcast(client, message: Message):
     sent = 0
     failed = 0
 
-    async for group in db.groups.find({}, projection={"id": 1}):
+    async for group in top_global_groups_collection.find({}, projection={"id": 1}):
         gid = group.get("id")
         if not gid:
             continue
@@ -122,7 +122,7 @@ async def stats(client, message: Message):
         return
 
     total_users = await user_collection.count_documents({})
-    total_groups = await db.groups.count_documents({})
+    total_groups = await top_global_groups_collection.count_documents({})
 
     text = (
         f"Bot Stats\n\n"
