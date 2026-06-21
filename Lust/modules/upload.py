@@ -3,7 +3,6 @@ from pyrogram.types import Message
 from pymongo import UpdateOne
 import re
 import asyncio
-import random
 
 from . import sudo_filter, app, capsify
 from Lust import collection, CHARA_CHANNEL_ID, user_collection
@@ -20,80 +19,8 @@ rarity_map = {
 7: "🐦‍🔥 Exotic",
 8: "🎐 Devine",
 9: "💦 Wet",
-10: "🎥 Animation",
-11: "☔ Rainy",
-12: "🔖 Manga",
-13: "🍭 Cosplay",
-14: "☀️ Sunny",
-15: "❄️ Winter",
-16: "🪼 Cosmic"
+10: "🎥 Animation"
 }
-
-
-# Auto-price ranges per rarity number (min, max) — used to randomly
-# assign a price on /upload instead of requiring manual entry.
-PRICE_RANGES = {
-1: (1_000, 4_000),
-2: (5_000, 16_000),
-3: (20_000, 60_000),
-4: (80_000, 200_000),
-5: (16_000_000, 50_000_000),
-6: (600_000, 1_600_000),
-7: (50_000_000, 200_000_000),
-8: (2_000_000, 5_000_000),
-9: (4_000_000, 10_000_000),
-10: (8_000_000, 20_000_000),
-11: (200_000, 600_000),
-12: (250_000, 700_000),
-13: (5_000_000, 15_000_000),
-14: (200_000, 600_000),
-15: (200_000, 600_000),
-16: (25_000_000, 80_000_000)
-}
-
-
-PRICE_RANGE_TEXT = (
-"✨ ᴘʀɪᴄᴇ ʀᴀɴɢᴇ ʟɪꜱᴛ\n"
-"━━━━━━━━━━━━━━━━━━━━\n\n"
-"1. ⚪ ᴄᴏᴍᴍᴏɴ\n"
-"💰 1k - 4k ᴄᴏɪɴs\n\n"
-"2. ☘️ ᴍᴇᴅɪᴜᴍ\n"
-"💰 5k - 16k ᴄᴏɪɴs\n\n"
-"3. 🔴 ʀᴀʀᴇ\n"
-"💰 20k - 60k ᴄᴏɪɴs\n\n"
-"4. 🟡 ʟᴇɢᴇɴᴅᴀʀʏ\n"
-"💰 80k - 200k ᴄᴏɪɴs\n\n"
-"5. 💋 ɴᴜᴅᴇ\n"
-"💰 16m - 50m ᴄᴏɪɴs\n\n"
-"6. 🔮 ʟɪᴍɪᴛᴇᴅ\n"
-"💰 600k - 1.6m ᴄᴏɪɴs\n\n"
-"7. 🐦‍🔥 ᴇxᴏᴛɪᴄ\n"
-"💰 50m - 200m+ ᴄᴏɪɴs\n\n"
-"8. 🎐 ᴅᴇᴠɪɴᴇ\n"
-"💰 2m - 5m ᴄᴏɪɴs\n\n"
-"9. 💦 ᴡᴇᴛ\n"
-"💰 4m - 10m ᴄᴏɪɴs\n\n"
-"10. 🎥 ᴀɴɪᴍᴀᴛɪᴏɴ\n"
-"💰 8m - 20m ᴄᴏɪɴs\n\n"
-"11. ☔ ʀᴀɪɴʏ\n"
-"💰 200k - 600k ᴄᴏɪɴs\n\n"
-"12. 🔖 ᴍᴀɴɢᴀ\n"
-"💰 250k - 700k ᴄᴏɪɴs\n\n"
-"13. 🍭 ᴄᴏꜱᴘʟᴀʏ\n"
-"💰 5m - 15m ᴄᴏɪɴs\n\n"
-"14. ☀️ ꜱᴜɴɴʏ\n"
-"💰 200k - 600k ᴄᴏɪɴs\n\n"
-"15. ❄️ ᴡɪɴᴛᴇʀ\n"
-"💰 200k - 600k ᴄᴏɪɴs\n\n"
-"16. 🪼 ᴄᴏꜱᴍɪᴄ\n"
-"💰 25m - 80m ᴄᴏɪɴs\n\n"
-"━━━━━━━━━━━━━━━━━━━━\n"
-"💡 ᴠᴀʟᴜᴇ ᴅᴇᴘᴇɴᴅꜱ ᴏɴ\n"
-"• ᴘᴏᴘᴜʟᴀʀɪᴛʏ\n"
-"• ᴇᴅɪᴛꜱ / ᴀʀᴛ\n"
-"• ᴅᴇᴍᴀɴᴅ\n"
-"• ᴛʀᴀᴅᴇ ᴠᴀʟᴜᴇ"
-)
 
 
 CATEGORY_MAP = {
@@ -128,7 +55,6 @@ def build_caption(character: dict) -> str:
     anime = character.get("anime", "")
     char_id = character.get("id", "")
     rarity = character.get("rarity", "") or ""
-    char_type = character.get("char_type", "")
     added_by = character.get("added_by", "Unknown")
 
     if " " in rarity:
@@ -149,9 +75,6 @@ def build_caption(character: dict) -> str:
         f"{char_id}: {name}\n\n"
         f"({rarity_emoji} 𝙍𝘼𝙍𝙄𝙏𝙔: {rarity_name})\n"
     )
-
-    if char_type:
-        caption += f"✦ ᴛʏᴘᴇ: {char_type}\n"
 
     if category_line:
         caption += f"\n{category_line}\n"
@@ -185,18 +108,13 @@ async def upload_character(client: Client, message: Message):
             "Reply to a photo or video with caption:\n\n"
             "Name - Character Name\n"
             "Anime - Anime Name\n"
-            "Rarity - 1 to 16\n"
-            "Type - Waifu/Husbando etc.\n\n"
-            "💡 Price is now set automatically based on rarity.\n\n"
-            + PRICE_RANGE_TEXT
+            "Rarity - 1 to 9\n"
+            "Price - 83"
         )
         return
 
     if not reply.caption:
-        await message.reply_text(
-            "❌ Please add caption to the photo/video!\n\n"
-            "Format:\nName - ...\nAnime - ...\nRarity - 1 to 16\nType - ..."
-        )
+        await message.reply_text("❌ Please add caption to the photo/video!\n\nFormat:\nName - ...\nAnime - ...\nRarity - 1 to 9\nPrice - 83")
         return
 
     caption = reply.caption
@@ -204,42 +122,34 @@ async def upload_character(client: Client, message: Message):
     name = re.search(r"Name\s*-\s*(.*)", caption)
     anime = re.search(r"Anime\s*-\s*(.*)", caption)
     rarity_match = re.search(r"Rarity\s*-\s*(\d+)", caption)
-    type_match = re.search(r"Type\s*-\s*(.*)", caption)
+    price_match = re.search(r"Price\s*-\s*(\d+)", caption)
 
     missing = []
     if not name:       missing.append("Name")
     if not anime:      missing.append("Anime")
     if not rarity_match: missing.append("Rarity")
-    if not type_match:  missing.append("Type")
+    if not price_match:  missing.append("Price")
 
     if missing:
-        await message.reply_text(
-            f"❌ Missing fields: {', '.join(missing)}\n\n"
-            f"Format:\nName - ...\nAnime - ...\nRarity - 1 to 16\nType - ..."
-        )
+        await message.reply_text(f"❌ Missing fields: {', '.join(missing)}\n\nFormat:\nName - ...\nAnime - ...\nRarity - 1 to 9\nPrice - 83")
         return
 
     name = name.group(1).strip()
     anime = anime.group(1).strip()
     rarity_number = int(rarity_match.group(1))
-    char_type = type_match.group(1).strip()
+    price = int(price_match.group(1))
 
 
     if reply.video:
-        rarity_number = 10
-        rarity = rarity_map[10]
+        rarity = "🎥 Animation"
     else:
-        if rarity_number == 10:
-            await message.reply_text("❌ Rarity 10 (Animation) is reserved for video uploads only.")
-            return
         rarity = rarity_map.get(rarity_number)
         if not rarity:
             await message.reply_text(
-                "❌ Invalid rarity! Use a number from the list below:\n\n" + PRICE_RANGE_TEXT
+                "❌ Invalid rarity! Use 1 to 9\n\n" +
+                "\n".join([f"{k} - {v}" for k, v in rarity_map.items() if k != 10])
             )
             return
-
-    price = random.randint(*PRICE_RANGES[rarity_number])
 
     char_id = await get_next_character_id()
     added_by = message.from_user.first_name
@@ -249,7 +159,6 @@ async def upload_character(client: Client, message: Message):
         "name": name,
         "anime": anime,
         "rarity": rarity,
-        "char_type": char_type,
         "added_by": added_by
     })
 
@@ -288,7 +197,6 @@ async def upload_character(client: Client, message: Message):
         "name": name,
         "anime": anime,
         "rarity": rarity,
-        "char_type": char_type,
         "price": price,
         "img_url": file_id,
         "type": media_type,
@@ -297,7 +205,7 @@ async def upload_character(client: Client, message: Message):
     })
 
 
-    await message.reply_text(f"Character added with ID {char_id} 💰 Price: {price:,}")
+    await message.reply_text(f"Character added with ID {char_id}")
 
 
 
@@ -359,7 +267,7 @@ async def update_character(client: Client, message: Message):
     if not character:
         await message.reply_text("Character not found")
         return
-    valid=["name","anime","rarity","price","img_url","char_type"]
+    valid=["name","anime","rarity","price","img_url"]
     if field not in valid:
         await message.reply_text("Invalid field")
         return
@@ -499,3 +407,5 @@ async def resend_database(client: Client, message: Message):
         result_text += f"\n❌ Failed IDs: {', '.join(failed_ids)}"
 
     await status.edit_text(result_text)
+
+
