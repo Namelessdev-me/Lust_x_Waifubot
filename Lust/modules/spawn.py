@@ -5,6 +5,7 @@ from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from . import collection, user_collection, group_user_totals_collection, top_global_groups_collection, app, capsify
 from asyncio import Lock
 from .watchers import character_watcher
+from .upload import get_active_season, SEASONAL_RARITIES  # ← new import
 
 AUTO_DELETE_SECONDS = 120  # 2 minutes
 
@@ -57,46 +58,40 @@ async def spawn_character(chat_id):
         if not chat_modes.get('character', True):
             return False
 
-        rarity_map = {
-            1: "⚪ Common",
-            2: "☘️ Medium",
-            3: "🔴 Rare",
-            4: "🟡 Legendary",
-            5: "💋 Nude",
-            6: "🔮 Limited",
-            7: "🐦‍🔥 Exotic",
-            8: "🎐 Devine",
-            9: "💦 Wet",
-           10: "🎥 Animation"
-        }
-
-        rarity_enabled = {
-            "⚪ Common":    True,
-            "☘️ Medium":   True,
-            "🔴 Rare":     True,
-            "🟡 Legendary": True,
-            "💋 Nude":      True,
-            "🔮 Limited":   True,
-            "🐦‍🔥 Exotic":  False,
-            "🎐 Devine":    True,
-            "💦 Wet":       True,
-            "🎥 Animation": True
-        }
-
+        # ── Rarity weights ──────────────────────────────────────────
         rarity_weights = {
-            "⚪ Common":    55.0,
-            "☘️ Medium":   22.0,
-            "🔴 Rare":     12.0,
-            "🟡 Legendary": 6.0,
-            "💋 Nude":      5.0,
-            "🔮 Limited":   1.5,
-            "🐦‍🔥 Exotic":  0.0,
-            "🎐 Devine":    3.1,
-            "💦 Wet":    9.0,
-            "🎥 Animation": 0.1
+            "⚪ Common":     55.0,
+            "☘️ Medium":    22.0,
+            "🔴 Rare":      12.0,
+            "🟡 Legendary":  6.0,
+            "💋 Nude":       5.0,
+            "🔮 Limited":    1.5,
+            "🐦‍🔥 Exotic":   0.0,   # disabled
+            "🎐 Devine":     3.1,
+            "💦 Wet":        9.0,
+            "🎥 Animation":  0.0,   # never spawns naturally
+            # ── New rarities ──
+            "🔖 Manga":      0.333, # ~1/300
+            "🍭 Cosplay":    0.1,   # ~1/1000
+            "🪼 Cosmic":     0.083, # ~1/1200
+            # ── Seasonal (controlled below) ──
+            "☔ Rainy":      0.0,
+            "☀️ Sunny":     0.0,
+            "❄️ Winter":    0.0,
         }
 
-        active_weights = {r: w for r, w in rarity_weights.items() if rarity_enabled.get(r, True)}
+        # ── Season override: only the active season spawns ──────────
+        active_season = await get_active_season()  # e.g. "☔ Rainy" or None
+        all_seasonal  = set(SEASONAL_RARITIES.values())
+
+        for seasonal_rarity in all_seasonal:
+            if active_season and seasonal_rarity == active_season:
+                rarity_weights[seasonal_rarity] = 5.0  # adjust rate here if needed
+            else:
+                rarity_weights[seasonal_rarity] = 0.0
+        # ────────────────────────────────────────────────────────────
+
+        active_weights = {r: w for r, w in rarity_weights.items() if w > 0}
 
         all_characters = await collection.find({}).to_list(length=None)
 
@@ -108,7 +103,7 @@ async def spawn_character(chat_id):
         if not valid_characters:
             valid_characters = all_characters
 
-        weights = [active_weights.get(c.get('rarity', ''), 1.0) for c in valid_characters]
+        weights   = [active_weights.get(c.get('rarity', ''), 1.0) for c in valid_characters]
         character = random.choices(valid_characters, weights=weights, k=1)[0]
 
         spawned_characters[chat_id] = character
@@ -121,7 +116,7 @@ async def spawn_character(chat_id):
         )
 
         keyboard = [[InlineKeyboardButton(capsify("NAME"), callback_data=f"name_{character['id']}")]]
-        markup = InlineKeyboardMarkup(keyboard)
+        markup   = InlineKeyboardMarkup(keyboard)
 
         if character.get("type") == "video":
             sent = await app.send_video(
@@ -140,9 +135,7 @@ async def spawn_character(chat_id):
                 has_spoiler=True
             )
 
-        # Auto-delete spawn message after 2 minutes
         asyncio.create_task(auto_delete(sent))
-
         asyncio.create_task(remove_spawn_after_timeout(chat_id, character, timeout=300))
 
         return True
@@ -178,9 +171,7 @@ async def remove_spawn_after_timeout(chat_id, character, timeout):
                 reply_markup=InlineKeyboardMarkup(keyboard)
             )
 
-        # Auto-delete timeout reveal message after 2 minutes
         asyncio.create_task(auto_delete(sent))
-
         del spawned_characters[chat_id]
 
 
@@ -209,10 +200,9 @@ async def guess(_, message):
             asyncio.create_task(auto_delete(sent))
             return
 
-        character = spawned_characters[chat_id]
-
+        character      = spawned_characters[chat_id]
         character_name = character['name'].strip().lower()
-        name_parts = character_name.split()
+        name_parts     = character_name.split()
 
         if guess not in name_parts:
             sent = await message.reply_text(
@@ -267,17 +257,15 @@ async def guess(_, message):
 @app.on_callback_query(filters.regex("^name_"))
 async def handle_name_button(_, callback_query):
 
-    chat_id = callback_query.message.chat.id
+    chat_id      = callback_query.message.chat.id
     character_id = callback_query.data.split("_")[1]
-
-    character = spawned_characters.get(chat_id)
+    character    = spawned_characters.get(chat_id)
 
     if not character or str(character['id']) != character_id:
         await callback_query.answer("❌ Character not available.", show_alert=True)
         return
 
-    user_id = callback_query.from_user.id
-
+    user_id   = callback_query.from_user.id
     user_data = await user_collection.find_one({'id': user_id})
 
     if not user_data:
@@ -307,10 +295,9 @@ async def handle_name_button(_, callback_query):
 @app.on_callback_query(filters.regex("^count_"))
 async def handle_count_button(_, callback_query):
 
-    user_id = callback_query.from_user.id
+    user_id      = callback_query.from_user.id
     character_id = callback_query.data.split("_")[1]
-
-    user_data = await user_collection.find_one({"id": user_id})
+    user_data    = await user_collection.find_one({"id": user_id})
 
     if not user_data or "characters" not in user_data:
         await callback_query.answer(capsify("YOU DON'T OWN THIS CHARACTER."), show_alert=True)
@@ -322,3 +309,4 @@ async def handle_count_button(_, callback_query):
         capsify(f"YOU HAVE {count} OF THIS CHARACTER."),
         show_alert=True
         )
+    
