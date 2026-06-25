@@ -1,11 +1,12 @@
 import asyncio
 import random
 import time
-from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import CommandHandler, CallbackContext
+from pyrogram import filters
+from pyrogram.handlers import MessageHandler, CallbackQueryHandler
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from Lust import user_collection, collection, application
 from . import capsify
-from .block import block_dec_ptb, block_cbq_ptb
+from .block import block_dec, block_cbq  # <-- confirm these names in block.py, dropped _ptb suffix
 
 COOLDOWN = 900
 
@@ -13,26 +14,26 @@ pending_smash = {}
 smash_cooldowns = {}
 
 
-@block_dec_ptb
-async def smash(update: Update, context: CallbackContext):
-    user_id = update.effective_user.id
+@block_dec
+async def smash(client, message):
+    user_id = message.from_user.id
 
     now = time.time()
     if user_id in smash_cooldowns:
         remaining = COOLDOWN - (now - smash_cooldowns[user_id])
         if remaining > 0:
-            await update.message.reply_text(
+            await message.reply_text(
                 capsify(f"⏳ Chill bro! Wait {int(remaining)}s before smashing again!")
             )
             return
 
     if user_id in pending_smash:
-        await update.message.reply_text(capsify("❌ You already have an active smash attempt!"))
+        await message.reply_text(capsify("❌ You already have an active smash attempt!"))
         return
 
     video_chars = await collection.find({"rarity": "🎥 Animation"}).to_list(length=None)
     if not video_chars:
-        await update.message.reply_text(capsify("❌ No animation characters found in database!"))
+        await message.reply_text(capsify("❌ No animation characters found in database!"))
         return
 
     character = random.choice(video_chars)
@@ -59,33 +60,32 @@ async def smash(update: Update, context: CallbackContext):
     ])
 
     try:
-        await update.message.reply_video(video=file_id, caption=caption, reply_markup=keyboard)
+        await message.reply_video(video=file_id, caption=caption, reply_markup=keyboard)
     except Exception:
         try:
-            await update.message.reply_text(text=caption, reply_markup=keyboard)
+            await message.reply_text(text=caption, reply_markup=keyboard)
         except Exception as e:
-            await update.message.reply_text(capsify(f"❌ Error: {e}"))
+            await message.reply_text(capsify(f"❌ Error: {e}"))
 
 
-@block_cbq_ptb
-async def smash_callback(update: Update, context: CallbackContext):
-    query = update.callback_query
-    clicker_id = query.from_user.id
-    data = query.data.split(":")
+@block_cbq
+async def smash_callback(client, callback_query):
+    clicker_id = callback_query.from_user.id
+    data = callback_query.data.split(":")
 
     if len(data) < 2:
-        await query.answer("Invalid data!", show_alert=True)
+        await callback_query.answer("Invalid data!", show_alert=True)
         return
 
     owner_id = int(data[1])
 
     if clicker_id != owner_id:
-        await query.answer("This isn't your smash attempt!", show_alert=True)
+        await callback_query.answer("This isn't your smash attempt!", show_alert=True)
         return
 
     character = pending_smash.pop(owner_id, None)
     if not character:
-        await query.answer("This attempt has expired!", show_alert=True)
+        await callback_query.answer("This attempt has expired!", show_alert=True)
         return
 
     name = character.get("name", "Unknown")
@@ -102,14 +102,14 @@ async def smash_callback(update: Update, context: CallbackContext):
     )
 
     try:
-        await query.edit_message_caption(caption=process_text, reply_markup=None)
+        await callback_query.edit_message_caption(caption=process_text, reply_markup=None)
     except Exception:
         try:
-            await query.edit_message_text(text=process_text, reply_markup=None)
+            await callback_query.edit_message_text(text=process_text, reply_markup=None)
         except Exception:
             pass
 
-    await query.answer()
+    await callback_query.answer()
     await asyncio.sleep(2)
 
     success = random.randint(1, 100) <= 35
@@ -140,13 +140,13 @@ async def smash_callback(update: Update, context: CallbackContext):
         )
 
     try:
-        await query.edit_message_caption(caption=result_text)
+        await callback_query.edit_message_caption(caption=result_text)
     except Exception:
         try:
-            await query.edit_message_text(text=result_text)
+            await callback_query.edit_message_text(text=result_text)
         except Exception:
             pass
 
 
-application.add_handler(CommandHandler("smash", smash))
-
+application.add_handler(MessageHandler(smash, filters.command("smash")))
+application.add_handler(CallbackQueryHandler(smash_callback, filters.regex(r"^smash:")))
