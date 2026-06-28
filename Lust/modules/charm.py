@@ -131,7 +131,7 @@ async def charm_callback(update: Update, context: CallbackContext):
         )
     else:
         result_text = (
-            f"{capsify('💀 SHE WASN'T INTERESTED!')}\n\n"
+            f"{capsify('💀 YOU ARE NOT WORTHY OF HER LOLLLLL!')}\n\n"
             f"{capsify('♦️ NAME:')} {capsify(name)}\n"
             f"{capsify('🧧 ANIME:')} {capsify(anime)}\n"
             f"{capsify('🆔:')} {char_id}\n"
